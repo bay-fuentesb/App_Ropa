@@ -11,12 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import cl.duoc.myapplication.R
-
 
 @Composable
 fun Navegacion() {
@@ -28,7 +27,7 @@ fun Navegacion() {
 }
 
 @Composable
-fun pagina1 (navController: NavHostController){
+fun pagina1 (navController: NavController){
 
     Column (
         modifier = Modifier.fillMaxSize(),
@@ -51,7 +50,7 @@ fun pagina1 (navController: NavHostController){
 }
 
 @Composable
-fun pagina2 (navController: NavHostController){
+fun pagina2 (navController: NavController){
 
     Column (
         modifier = Modifier.fillMaxSize(),
