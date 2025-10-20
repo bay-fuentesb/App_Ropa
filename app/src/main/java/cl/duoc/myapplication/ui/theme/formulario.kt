@@ -72,10 +72,12 @@ fun formulario(){
                 .padding(24.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Text)
         )
-
+        Button(onClick = { modal = true }) {
+            Text("OK")
+        }
         if(modal){
             AlertDialog(
-                onDismissRequest = { modal = false },
+                onDismissRequest = { modal = true },
                 title = { Text("Mensaje") },
                 text = { Text("Se debe crear el usuario: $nombre con la contraseña:$correo") },
                 confirmButton = {
