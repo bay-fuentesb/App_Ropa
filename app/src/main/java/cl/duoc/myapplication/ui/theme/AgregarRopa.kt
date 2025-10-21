@@ -47,10 +47,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import android.os.Build
 import android.graphics.ImageDecoder
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.myapplication.model.Prenda
+import cl.duoc.myapplication.viewmodel.RopaViewModel
 import java.io.File
 
 @Composable
-fun AgregarRopa(navController: NavController) {
+fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
@@ -152,8 +155,14 @@ fun AgregarRopa(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Título") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-
+            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = category,
@@ -174,10 +183,16 @@ fun AgregarRopa(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
-                if ((bitmap != null || imageUri != null) && title.isNotBlank()) {
-                    navController.navigate("inicio") {
-                        popUpTo("inicio") { inclusive = false }
-                    }
+                if (imageUri != null && title.isNotBlank()) {
+                    ropaViewModel.agregarPrenda(
+                        Prenda(
+                            titulo = title,
+                            categoria = category,
+                            color = color,
+                            imagenUri = imageUri.toString()
+                        )
+                    )
+                    navController.navigate("TuRopa")
                 } else {
                     scope.launch { snackbarHostState.showSnackbar("Agrega una imagen y nombre") }
                 }

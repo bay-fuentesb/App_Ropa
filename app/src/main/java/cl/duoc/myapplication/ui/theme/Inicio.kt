@@ -95,8 +95,8 @@ fun Inicio(navController: NavController? = null) {
                         Text(text = "Ver mas", color = MaterialTheme.colorScheme.onPrimary)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { navController?.navigate("agregar") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Text(text = "agregar ropa", color = MaterialTheme.colorScheme.onBackground)
+                    Button(onClick = { navController?.navigate("Agregar") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                        Text(text = "Agregar ropa", color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
