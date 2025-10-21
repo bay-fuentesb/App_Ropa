@@ -7,3 +7,4 @@ data class Prenda(
     val color: String,
     val imagenUri: String
 )
+

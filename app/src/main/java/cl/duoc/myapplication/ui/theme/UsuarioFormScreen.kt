@@ -25,7 +25,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
 
@@ -41,6 +44,18 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
     var showSnackbar by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
+
+        Text(
+            text = "The Clothing APP 👓",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
