@@ -61,7 +61,7 @@ fun Inicio(navController: NavController? = null) {
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Button(
-                    onClick = { /* navegar al catálogo */ },
+                    onClick = { navController?.navigate("recomendaciones") },
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth(0.6f)
                 ) {
@@ -91,11 +91,11 @@ fun Inicio(navController: NavController? = null) {
 
             Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(onClick = { /* ver más inventario */ }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                    Button(onClick = { navController?.navigate("TuRopa") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                         Text(text = "Ver mas", color = MaterialTheme.colorScheme.onPrimary)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { navController?.navigate("Agregar") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                    Button(onClick = { navController?.navigate("agregar") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                         Text(text = "Agregar ropa", color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }

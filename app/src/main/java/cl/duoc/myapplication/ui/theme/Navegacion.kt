@@ -14,6 +14,7 @@ fun Navegacion() {
     NavHost(navController, startDestination = "form") {
         composable("form") { UsuarioFormScreen(navController) }
         composable("inicio") { Inicio(navController) }
+        composable("recomendaciones") { Recomendaciones(navController) }
         composable("agregar") { AgregarRopa(navController, ropaViewModel= ropaViewModel) }
         composable("camara") { CamaraFotos() }
         composable("TuRopa"){
