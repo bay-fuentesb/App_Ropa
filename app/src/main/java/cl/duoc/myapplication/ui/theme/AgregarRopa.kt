@@ -56,6 +56,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.IconButton
 
 @Composable
@@ -128,8 +130,23 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { navController.navigate("inicio") }) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "Volver"
+                    )
+                }
+            }
+
             Text(text = "Agregar prenda", fontSize = 20.sp)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 shape = RoundedCornerShape(8.dp),
@@ -264,11 +281,6 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
                 Text(text = "Agregar", color = MaterialTheme.colorScheme.onPrimary)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextButton(onClick = { navController.popBackStack() }) {
-                Text(text = "Cancelar")
             }
         }
     }
-}
