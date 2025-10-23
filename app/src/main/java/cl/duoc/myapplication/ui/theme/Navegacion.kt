@@ -17,8 +17,8 @@ fun Navegacion() {
         composable("recomendaciones") { Recomendaciones(navController) }
         composable("agregar") { AgregarRopa(navController, ropaViewModel= ropaViewModel) }
         composable("camara") { CamaraFotos() }
-        composable("miRopa"){
-            MisPrendas(ropaViewModel=ropaViewModel, navController = navController)
+        composable("miRopa"){ MisPrendas(ropaViewModel=ropaViewModel, navController = navController) }
+        composable("outfits") { OutfitsScreen(navController = navController, ropaViewModel = ropaViewModel)
         }
     }
 }

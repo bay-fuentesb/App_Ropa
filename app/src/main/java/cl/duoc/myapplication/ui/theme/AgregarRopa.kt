@@ -73,7 +73,7 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
     // Estado para el menú desplegable
     var expanded by remember { mutableStateOf(false) }
-    val categories = listOf("Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka")
+    val categories = listOf("Accesorios", "Calcetines", "Chaqueta", "Jockey","Parka","Pantalones", "Polera", "Poleron", "Zapatilla")
 
     fun loadBitmap(uri: Uri): Bitmap? {
         return try {

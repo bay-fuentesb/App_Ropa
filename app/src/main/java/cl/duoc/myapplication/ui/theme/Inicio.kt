@@ -34,7 +34,7 @@ fun Inicio(navController: NavController? = null) {
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Sugerencias para ti",
+                text = "Outfits Sugeridos",
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
             )
@@ -72,7 +72,7 @@ fun Inicio(navController: NavController? = null) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Tu ropa",
+                text = "Mi Ropa",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )
