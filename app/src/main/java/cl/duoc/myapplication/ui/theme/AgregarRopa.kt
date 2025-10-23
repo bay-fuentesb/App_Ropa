@@ -1,5 +1,4 @@
 package cl.duoc.myapplication.ui.theme
-
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,10 +46,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import android.os.Build
 import android.graphics.ImageDecoder
 import androidx.core.content.FileProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 import java.io.File
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.IconButton
 
 @Composable
 fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
@@ -64,6 +70,10 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Estado para el menú desplegable
+    var expanded by remember { mutableStateOf(false) }
+    val categories = listOf("Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka")
 
     fun loadBitmap(uri: Uri): Bitmap? {
         return try {
@@ -111,16 +121,20 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
             Text(text = "Agregar prenda", fontSize = 20.sp)
             Spacer(modifier = Modifier.height(12.dp))
 
-            Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors()) {
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors()
+            ) {
                 if (bitmap != null) {
                     Image(
                         painter = BitmapPainter(bitmap!!.asImageBitmap()),
@@ -144,11 +158,20 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA) }, modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = { cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA) },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(text = "Cámara")
                 }
-                Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f)) {
+                Button(
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(text = "Galería")
                 }
             }
@@ -164,12 +187,43 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = category,
-                onValueChange = { category = it },
-                label = { Text("Categoría") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Campo de categoría como menú desplegable - CORREGIDO
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // TextField que funciona como el "ancla" del DropdownMenu
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría") },
+                    trailingIcon = {
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowDropDown,
+                                contentDescription = "Abrir categorías"
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = true }
+                )
+
+                // DropdownMenu que se posiciona relativo al TextField
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    categories.forEach { categoria ->
+                        DropdownMenuItem(
+                            text = { Text(categoria) },
+                            onClick = {
+                                category = categoria
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -182,21 +236,31 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = {
-                if (imageUri != null && title.isNotBlank()) {
-                    ropaViewModel.agregarPrenda(
-                        Prenda(
-                            titulo = title,
-                            categoria = category,
-                            color = color,
-                            imagenUri = imageUri.toString()
+            Button(
+                onClick = {
+                    if (imageUri != null && title.isNotBlank() && category.isNotBlank()) {
+                        ropaViewModel.agregarPrenda(
+                            Prenda(
+                                titulo = title,
+                                categoria = category,
+                                color = color,
+                                imagenUri = imageUri.toString()
+                            )
                         )
-                    )
-                    navController.navigate("TuRopa")
-                } else {
-                    scope.launch { snackbarHostState.showSnackbar("Agrega una imagen y nombre") }
-                }
-            }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                        navController.navigate("miRopa")
+                    } else {
+                        val mensaje = when {
+                            imageUri == null -> "Agrega una imagen"
+                            title.isBlank() -> "Agrega un título"
+                            category.isBlank() -> "Selecciona una categoría"
+                            else -> "Completa todos los campos"
+                        }
+                        scope.launch { snackbarHostState.showSnackbar(mensaje) }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
                 Text(text = "Agregar", color = MaterialTheme.colorScheme.onPrimary)
             }
 
