@@ -1,23 +1,33 @@
 package cl.duoc.myapplication.ui.theme
+
+import android.os.Build
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.model.OutfitSugerido
 import cl.duoc.myapplication.repository.OutfitRepository
 import cl.duoc.myapplication.viewmodel.RopaViewModel
+import kotlinx.coroutines.launch
+import android.graphics.ImageDecoder
+import android.graphics.BitmapFactory
+import androidx.core.net.toUri
+import cl.duoc.myapplication.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,22 +37,27 @@ fun OutfitsScreen(
 ) {
     val prendas = ropaViewModel.prendas
     val outfitRepository = OutfitRepository()
+    val scope = rememberCoroutineScope()
 
-    // Generar sugerencias cuando la pantalla se carga
-    val outfitsSugeridos by remember(prendas) {
-        mutableStateOf(
-            if (prendas.size >= 2) {
-                outfitRepository.generarSugerenciasOutfits(prendas)
-            } else {
-                emptyList()
-            }
-        )
+    // Antes: generábamos sugerencias automáticamente al entrar.
+    // Ahora: las generamos solo a demanda cuando el usuario pulse el botón.
+    val outfitsSugeridosState = remember { mutableStateOf<List<OutfitSugerido>>(emptyList()) }
+
+    fun generarSugerenciasSiPosible() {
+        if (prendas.size >= 2) {
+            outfitsSugeridosState.value = outfitRepository.generarSugerenciasOutfits(prendas)
+        } else {
+            outfitsSugeridosState.value = emptyList()
+        }
     }
+
+    // Outfits guardados por el usuario (desde ViewModel)
+    val userOutfits = ropaViewModel.outfits
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Outfits Sugeridos") },
+                title = { Text("Outfits") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás")
@@ -57,7 +72,22 @@ fun OutfitsScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            if (prendas.isEmpty()) {
+            // Botones: crear outfit y mostrar sugerencias a demanda
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { navController.navigate("crearOutfit") }, modifier = Modifier.weight(1f)) {
+                    Text("Crear outfit")
+                }
+                Button(onClick = { generarSugerenciasSiPosible() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
+                    Text("Mostrar sugerencias")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Lista combinada: primero los outfits del usuario, luego (si el usuario las solicitó) las sugerencias
+            val displayList: List<OutfitSugerido> = (userOutfits + outfitsSugeridosState.value)
+
+            if (displayList.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -65,71 +95,22 @@ fun OutfitsScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Create,
-                        contentDescription = "Sin prendas",
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Agrega prendas para generar outfits",
-                        style = MaterialTheme.typography.bodyLarge
+                        text = "Aún no hay outfits — crea uno o agrega prendas",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { navController.navigate("agregar") }) {
-                        Text("Agregar Primera Prenda")
+                        Text("Agregar Prenda")
                     }
-                }
-            } else if (prendas.size < 2) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Create,
-                        contentDescription = "Pocas prendas",
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Necesitas al menos 2 prendas para generar outfits",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { navController.navigate("agregar") }) {
-                        Text("Agregar Más Prendas")
-                    }
-                }
-            } else if (outfitsSugeridos.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "No se pudieron generar outfits con tus prendas actuales",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Intenta agregar más prendas de diferentes categorías",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(outfitsSugeridos) { outfit ->
+                    items(displayList) { outfit ->
                         OutfitSugeridoCompletoCard(outfit = outfit)
                     }
                 }
@@ -140,6 +121,8 @@ fun OutfitsScreen(
 
 @Composable
 fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp)
@@ -157,27 +140,51 @@ fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                // Indicador de puntuación
-                Surface(
-                    color = when (outfit.puntuacion) {
-                        in 8..10 -> MaterialTheme.colorScheme.primary
-                        in 5..7 -> MaterialTheme.colorScheme.secondary
-                        else -> MaterialTheme.colorScheme.tertiary
-                    },
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        text = "${outfit.puntuacion}/10",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelSmall
-                    )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Miniaturas de las prendas del outfit
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                outfit.combinacion.forEach { prenda ->
+                    val uri = try { prenda.imagenUri.toUri() } catch (_: Exception) { null }
+                    val bitmap = remember(uri) {
+                        try {
+                            if (uri != null) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                    val src = ImageDecoder.createSource(context.contentResolver, uri)
+                                    ImageDecoder.decodeBitmap(src)
+                                } else {
+                                    val stream = context.contentResolver.openInputStream(uri)
+                                    stream.use { BitmapFactory.decodeStream(it) }
+                                }
+                            } else null
+                        } catch (_: Exception) { null }
+                    }
+
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = prenda.titulo,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .weight(1f)
+                        )
+                    } else {
+                        Image(
+                            painter = androidx.compose.ui.res.painterResource(id = R.drawable.balenciaga),
+                            contentDescription = prenda.titulo,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .weight(1f)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista de prendas del outfit
+            // Lista de prendas del outfit (texto)
             Text(
                 text = "Prendas incluidas:",
                 style = MaterialTheme.typography.labelMedium,
@@ -203,13 +210,7 @@ fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Motivo de la sugerencia
-            Text(
-                text = "💡 ${outfit.motivo}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
+            // Motivo y puntuación eliminados por petición del usuario
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(

@@ -51,10 +51,8 @@ fun MisPrendas(
     var categoriaFiltro by remember { mutableStateOf("Todas") }
     val categorias = listOf("Todas", "Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka")
 
-    // Estados para outfits
-    var outfitSugerido by remember { mutableStateOf<OutfitSugerido?>(null) }
-    var mostrarOutfit by remember { mutableStateOf(false) }
-    val outfitRepository = OutfitRepository()
+    // Antes aquí se gestionaban estados para un modal de outfit sugerido;
+    // ahora el botón de sugerir navega a la pantalla `outfits`, por eso no guardamos ni mostramos sugerencias aquí.
 
     // Filtrar prendas según la categoría seleccionada
     val prendasFiltradas = if (categoriaFiltro == "Todas") {
@@ -122,13 +120,7 @@ fun MisPrendas(
 
                 // Botón de sugerencia de outfit
                 IconButton(
-                    onClick = {
-                        scope.launch {
-                            val outfit = outfitRepository.generarOutfitAleatorio(prendas)
-                            outfitSugerido = outfit
-                            mostrarOutfit = true
-                        }
-                    }
+                    onClick = { navController.navigate("outfits") }
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Create,
@@ -155,15 +147,6 @@ fun MisPrendas(
                         contentDescription = "Filtrar por categoría"
                     )
                 }
-            }
-
-            // Mostrar outfit sugerido si existe
-            if (mostrarOutfit && outfitSugerido != null) {
-                OutfitSugeridoCard(
-                    outfit = outfitSugerido!!,
-                    onDismiss = { mostrarOutfit = false }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // Mostrar filtro actual si no es "Todas"
@@ -227,23 +210,7 @@ fun MisPrendas(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Botón para ver más outfits sugeridos
-            if (prendas.size >= 2) {
-                Button(
-                    onClick = {
-                        navController.navigate("outfits")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary
-                    )
-                ) {
-                    Text("Ver Todos los Outfits Sugeridos")
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+
 
             // Lista de prendas
             LazyColumn(
@@ -318,83 +285,5 @@ fun PrendaCard(prenda: cl.duoc.myapplication.model.Prenda, context: android.cont
     }
 }
 
-@Composable
-fun OutfitSugeridoCard(outfit: OutfitSugerido, onDismiss: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "✨ Outfit Sugerido",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.balenciaga), // Puedes cambiar por un icono de cerrar
-                        contentDescription = "Cerrar"
-                    )
-                }
-            }
+// Eliminar OutfitSugeridoCard porque ya no se utiliza en esta pantalla
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = outfit.nombre,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Prendas incluidas:",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
-            )
-
-            outfit.combinacion.forEach { prenda ->
-                Text(
-                    text = "• ${prenda.titulo} (${prenda.categoria})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = outfit.motivo,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Surface(
-                color = when (outfit.puntuacion) {
-                    in 8..10 -> MaterialTheme.colorScheme.primary
-                    in 5..7 -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.tertiary
-                },
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text(
-                    text = "Puntuación: ${outfit.puntuacion}/10",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-    }
-}

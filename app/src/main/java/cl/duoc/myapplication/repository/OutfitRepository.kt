@@ -13,84 +13,120 @@ class OutfitRepository {
         val sugerencias = mutableListOf<OutfitSugerido>()
         val prendasPorCategoria = prendasUsuario.groupBy { it.categoria }
 
-        // REGLA 1: Combinar Polera/Poleron con cualquier pantalón (simulado)
-        val prendasSuperiores = (prendasPorCategoria["Polera"] ?: emptyList()) +
+        // Definimos categorías principales
+        val superiores = (prendasPorCategoria["Polera"] ?: emptyList()) +
                 (prendasPorCategoria["Poleron"] ?: emptyList()) +
                 (prendasPorCategoria["Chaqueta"] ?: emptyList()) +
                 (prendasPorCategoria["Parka"] ?: emptyList())
 
-        val prendasInferiores = (prendasPorCategoria["Zapatilla"] ?: emptyList()) // Simulamos como pantalones
+        val inferiores = prendasPorCategoria["Pantalones"] ?: emptyList()
+        val calzados = prendasPorCategoria["Zapatilla"] ?: emptyList()
 
-        if (prendasSuperiores.isNotEmpty() && prendasInferiores.isNotEmpty()) {
-            // Combinación básica superior + inferior
-            for (i in 0 until minOf(2, prendasSuperiores.size)) {
-                for (j in 0 until minOf(2, prendasInferiores.size)) {
-                    val combinacion = listOf(prendasSuperiores[i], prendasInferiores[j])
+        // Regla: intentar formar combinaciones top + bottom + calzado cuando sea posible
+        val tops = superiores
+        val bottoms = inferiores
+        val shoes = calzados
 
+        // Generar combinaciones priorizando categorías
+        val maxSuggestions = 3
+
+        // Primero agregar outfits completos (top + bottom + shoe)
+        if (tops.isNotEmpty() && bottoms.isNotEmpty() && shoes.isNotEmpty()) {
+            val combos = mutableListOf<List<Prenda>>()
+            for (t in tops.take(2)) {
+                for (b in bottoms.take(2)) {
+                    for (s in shoes.take(1)) {
+                        combos.add(listOf(t, b, s))
+                    }
+                }
+            }
+            combos.shuffled().take(maxSuggestions).forEachIndexed { index, combinacion ->
+                sugerencias.add(
+                    OutfitSugerido(
+                        nombre = "Outfit Completo ${index + 1}",
+                        combinacion = combinacion,
+                        puntuacion = 8,
+                        motivo = "Combinación equilibrada entre superior, inferior y calzado"
+                    )
+                )
+            }
+        }
+
+        // Si no hay calzado o no se alcanzaron sugerencias, combinar top + bottom
+        if (sugerencias.size < maxSuggestions && tops.isNotEmpty() && bottoms.isNotEmpty()) {
+            val combos = mutableListOf<List<Prenda>>()
+            for (t in tops) {
+                for (b in bottoms) {
+                    combos.add(listOf(t, b))
+                }
+            }
+            combos.shuffled().take(maxSuggestions - sugerencias.size).forEachIndexed { index, combinacion ->
+                sugerencias.add(
+                    OutfitSugerido(
+                        nombre = "Outfit Superior+Inferior ${sugerencias.size + 1}",
+                        combinacion = combinacion,
+                        puntuacion = 7,
+                        motivo = "Combinación entre superior e inferior"
+                    )
+                )
+            }
+        }
+
+        // Si aún no hay sugerencias, generar combinaciones aleatorias con al menos 2 prendas
+        if (sugerencias.isEmpty()) {
+            val mezcladas = prendasUsuario.shuffled()
+            val cantidad = minOf(maxSuggestions, prendasUsuario.size)
+            for (i in 0 until cantidad) {
+                val first = mezcladas[i]
+                val second = mezcladas.filter { it != first }.randomOrNull()
+                if (second != null) {
                     sugerencias.add(
                         OutfitSugerido(
-                            nombre = "Outfit Casual ${sugerencias.size + 1}",
-                            combinacion = combinacion,
-                            puntuacion = 7,
-                            motivo = "Combinación equilibrada para el día a día"
+                            nombre = "Combinación Aleatoria ${i + 1}",
+                            combinacion = listOf(first, second),
+                            puntuacion = 6,
+                            motivo = "Combinación creada con lo que tienes disponible"
                         )
                     )
                 }
             }
         }
 
-        // REGLA 2: Agregar accesorios a combinaciones existentes
-        val accesorios = prendasPorCategoria["Accesorios"] ?: emptyList()
-        val jockeys = prendasPorCategoria["Jockeys"] ?: emptyList()
-
-        if ((accesorios.isNotEmpty() || jockeys.isNotEmpty()) && sugerencias.isNotEmpty()) {
-            val accesorio = (accesorios + jockeys).firstOrNull()
-            if (accesorio != null) {
-                val outfitConAccesorio = sugerencias.first().copy(
-                    combinacion = sugerencias.first().combinacion + accesorio,
-                    puntuacion = 8,
-                    motivo = "${sugerencias.first().motivo} con ${accesorio.titulo}"
-                )
-                sugerencias.add(0, outfitConAccesorio)
-            }
-        }
-
-        // REGLA 3: Combinación aleatoria si hay pocas sugerencias
-        if (sugerencias.isEmpty() && prendasUsuario.size >= 2) {
-            val prenda1 = prendasUsuario.random()
-            val prenda2 = prendasUsuario.filter { it != prenda1 }.randomOrNull()
-
-            if (prenda2 != null) {
-                sugerencias.add(
-                    OutfitSugerido(
-                        nombre = "Combinación Aleatoria",
-                        combinacion = listOf(prenda1, prenda2),
-                        puntuacion = 6,
-                        motivo = "Combinación creada con lo que tienes disponible"
-                    )
-                )
-            }
-        }
-
-        return sugerencias.take(3) // Máximo 3 sugerencias
+        return sugerencias.take(maxSuggestions)
     }
 
     fun generarOutfitAleatorio(prendasUsuario: List<Prenda>): OutfitSugerido? {
-        if (prendasUsuario.size < 2) return null
+        if (prendasUsuario.isEmpty()) return null
 
-        val prendasSeleccionadas = mutableListOf<Prenda>()
+        val prendasPorCategoria = prendasUsuario.groupBy { it.categoria }
 
-        // Seleccionar 2-3 prendas aleatorias
-        val cantidad = minOf(3, prendasUsuario.size)
-        val prendasMezcladas = prendasUsuario.shuffled()
+        val superiores = (prendasPorCategoria["Polera"] ?: emptyList()) +
+                (prendasPorCategoria["Poleron"] ?: emptyList()) +
+                (prendasPorCategoria["Chaqueta"] ?: emptyList()) +
+                (prendasPorCategoria["Parka"] ?: emptyList())
+        val inferiores = prendasPorCategoria["Pantalones"] ?: emptyList()
+        val calzados = prendasPorCategoria["Zapatilla"] ?: emptyList()
 
-        for (i in 0 until cantidad) {
-            prendasSeleccionadas.add(prendasMezcladas[i])
+        val seleccion = mutableListOf<Prenda>()
+
+        // Intentar seleccionar una prenda por categoría principal
+        superiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
+        inferiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
+        calzados.shuffled().firstOrNull()?.let { seleccion.add(it) }
+
+        // Si quedaron menos de 2 prendas, completar con prendas aleatorias
+        val restantes = prendasUsuario.filter { it !in seleccion }.shuffled()
+        var idx = 0
+        while (seleccion.size < minOf(3, prendasUsuario.size) && idx < restantes.size) {
+            seleccion.add(restantes[idx])
+            idx++
         }
+
+        if (seleccion.size < 2) return null
 
         return OutfitSugerido(
             nombre = "Outfit Aleatorio",
-            combinacion = prendasSeleccionadas,
+            combinacion = seleccion,
             puntuacion = 6,
             motivo = "Combinación aleatoria creada con tus prendas"
         )
