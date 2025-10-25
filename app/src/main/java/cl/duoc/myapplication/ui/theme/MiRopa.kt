@@ -49,7 +49,7 @@ fun MisPrendas(
     // Estados para el filtro
     var mostrarFiltro by remember { mutableStateOf(false) }
     var categoriaFiltro by remember { mutableStateOf("Todas") }
-    val categorias = listOf("Todas", "Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka")
+    val categorias = listOf("Todas", "Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka", "Pantalon")
 
     // Antes aquí se gestionaban estados para un modal de outfit sugerido;
     // ahora el botón de sugerir navega a la pantalla `outfits`, por eso no guardamos ni mostramos sugerencias aquí.
