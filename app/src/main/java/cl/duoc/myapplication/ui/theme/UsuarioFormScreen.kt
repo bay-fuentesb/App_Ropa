@@ -1,4 +1,5 @@
 package cl.duoc.myapplication.ui.theme
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,7 +56,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.myapplication.R
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,17 +133,17 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "👗",
-                                fontSize = 24.sp, // Texto más pequeño
-                                modifier = Modifier.padding(6.dp)
-                            )
+                            Image(
+                                painter = painterResource(id = R.drawable.dresscodeicon),
+                                contentDescription = "Logo DressCode",
+                                modifier = Modifier.size(32.dp)
+                                )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "The Clothing APP",
+                            text = "DressCode",
                             fontSize = 20.sp, // Reducido el tamaño
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
