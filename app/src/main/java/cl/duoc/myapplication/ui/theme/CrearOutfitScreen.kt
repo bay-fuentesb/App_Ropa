@@ -27,14 +27,12 @@ fun CrearOutfitScreen(
     val outfitRepository = OutfitRepository()
     val context = LocalContext.current
 
-    // Categorías principales (incluimos Jockey/Jockeys por compatibilidad)
     val superiores = prendas.filter { it.categoria == "Polera" || it.categoria == "Poleron" || it.categoria == "Chaqueta" || it.categoria == "Parka" }
     val inferiores = prendas.filter { it.categoria == "Pantalones" }
     val calzados = prendas.filter { it.categoria == "Zapatilla" }
     val accesorios = prendas.filter { it.categoria == "Accesorios" }
     val jockeys = prendas.filter { it.categoria == "Jockey" || it.categoria == "Jockeys" }
 
-    // Estados UI
     var outfitName by remember { mutableStateOf("") }
 
     var expandedSup by remember { mutableStateOf(false) }
@@ -70,7 +68,6 @@ fun CrearOutfitScreen(
             Text(text = "Selecciona prendas para tu outfit", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Nombre del outfit
             OutlinedTextField(
                 value = outfitName,
                 onValueChange = { outfitName = it },
@@ -125,7 +122,6 @@ fun CrearOutfitScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Jockey selector
             OutlinedTextField(
                 value = selectedJock?.titulo ?: "Seleccionar jockey (opcional)",
                 onValueChange = {},
@@ -141,7 +137,6 @@ fun CrearOutfitScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Accesorio selector (opcional)
             OutlinedTextField(
                 value = selectedAcc?.titulo ?: "Seleccionar accesorio (opcional)",
                 onValueChange = {},
@@ -165,8 +160,7 @@ fun CrearOutfitScreen(
                         val outfit = OutfitSugerido(
                             nombre = name,
                             combinacion = combinacion,
-                            puntuacion = 8,
-                            motivo = "Creado manualmente"
+
                         )
                         ropaViewModel.agregarOutfit(outfit)
                         navController.popBackStack()
@@ -178,7 +172,6 @@ fun CrearOutfitScreen(
                 }
 
                 Button(onClick = {
-                    // Generar aleatorio usando el repositorio y guardar con nombre
                     outfitRepository.generarOutfitAleatorio(prendas)?.let { outfit ->
                         val name = if (outfitName.isNotBlank()) outfitName else "Outfit Aleatorio"
                         val outfitNamed = outfit.copy(nombre = name)

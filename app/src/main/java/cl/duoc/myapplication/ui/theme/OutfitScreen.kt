@@ -39,19 +39,10 @@ fun OutfitsScreen(
     val outfitRepository = OutfitRepository()
     val scope = rememberCoroutineScope()
 
-    // Antes: generábamos sugerencias automáticamente al entrar.
-    // Ahora: las generamos solo a demanda cuando el usuario pulse el botón.
     val outfitsSugeridosState = remember { mutableStateOf<List<OutfitSugerido>>(emptyList()) }
 
-    fun generarSugerenciasSiPosible() {
-        if (prendas.size >= 2) {
-            outfitsSugeridosState.value = outfitRepository.generarSugerenciasOutfits(prendas)
-        } else {
-            outfitsSugeridosState.value = emptyList()
-        }
-    }
 
-    // Outfits guardados por el usuario (desde ViewModel)
+
     val userOutfits = ropaViewModel.outfits
 
     Scaffold(
@@ -77,14 +68,11 @@ fun OutfitsScreen(
                 Button(onClick = { navController.navigate("crearOutfit") }, modifier = Modifier.weight(1f)) {
                     Text("Crear outfit")
                 }
-                Button(onClick = { generarSugerenciasSiPosible() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
-                    Text("Mostrar sugerencias")
-                }
+
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista combinada: primero los outfits del usuario, luego (si el usuario las solicitó) las sugerencias
             val displayList: List<OutfitSugerido> = (userOutfits + outfitsSugeridosState.value)
 
             if (displayList.isEmpty()) {
@@ -144,7 +132,6 @@ fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Miniaturas de las prendas del outfit
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 outfit.combinacion.forEach { prenda ->
                     val uri = try { prenda.imagenUri.toUri() } catch (_: Exception) { null }
@@ -184,7 +171,6 @@ fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista de prendas del outfit (texto)
             Text(
                 text = "Prendas incluidas:",
                 style = MaterialTheme.typography.labelMedium,
@@ -210,7 +196,6 @@ fun OutfitSugeridoCompletoCard(outfit: OutfitSugerido) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Motivo y puntuación eliminados por petición del usuario
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(

@@ -74,11 +74,10 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    // Gradiente moderno para fondo
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF667eea), // Azul moderno
-            Color(0xFF764ba2)  // Púrpura elegante
+            Color(0xFF667eea),
+            Color(0xFF764ba2)
         )
     )
 
@@ -95,8 +94,8 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp) // Reducido el padding para más espacio
-                    .align(Alignment.TopCenter) // Cambiado a TopCenter
+                    .padding(16.dp)
+                    .align(Alignment.TopCenter)
                     .shadow(
                         elevation = 16.dp,
                         shape = RoundedCornerShape(24.dp),
@@ -115,12 +114,10 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Logo/Header mejorado - más compacto
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        // Icono de moda más pequeño
                         Box(
                             modifier = Modifier
                                 .size(60.dp) // Reducido el tamaño
@@ -160,7 +157,6 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         )
                     }
 
-                    // Campos del formulario con menos espacio entre ellos
                     FashionTextField(
                         value = form.nombre,
                         onValueChange = { viewModel.onNombreChange(it) },
@@ -196,7 +192,6 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Checkboxes más compactos
                     FashionCheckbox(
                         checked = form.aceptaTerminos,
                         onCheckedChange = { viewModel.onAceptaTerminosChange(it) },
@@ -219,15 +214,12 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Botón mejorado
                     Button(
                         onClick = {
                             if (viewModel.isFormValid(errors)) {
                                 isLoading = true
-                                // Simular proceso de registro
                                 scope.launch {
-                                    // Aquí iría tu lógica de registro real
-                                    kotlinx.coroutines.delay(1500) // Simular carga
+                                    kotlinx.coroutines.delay(1500)
                                     isLoading = false
                                     navController.navigate("inicio")
                                 }
@@ -242,7 +234,7 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp), // Altura reducida
+                            .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -259,21 +251,19 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         } else {
                             Text(
                                 text = "Crear Cuenta",
-                                fontSize = 15.sp, // Tamaño reducido
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
 
-                    // Enlace para iniciar sesión
                     Text(
                         text = "¿Ya tienes una cuenta? Inicia sesión",
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp, // Tamaño reducido
+                        fontSize = 13.sp,
                         modifier = Modifier
                             .clickable {
-                                // navController.navigate("login")
                             }
                             .padding(8.dp)
                     )
@@ -344,7 +334,7 @@ fun FashionTextField(
             Text(
                 text = it,
                 color = MaterialTheme.colorScheme.error,
-                fontSize = 11.sp, // Texto de error más pequeño
+                fontSize = 11.sp,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
         }
@@ -368,10 +358,10 @@ fun FashionCheckbox(
                 if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             )
-            .padding(10.dp) // Padding reducido
+            .padding(10.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.Top, // Cambiado a Top para mejor alineación
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.fillMaxWidth()
         ) {
             Checkbox(
@@ -388,7 +378,7 @@ fun FashionCheckbox(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp // Texto más pequeño
+                    fontSize = 14.sp
                 )
 
                 description?.let {
@@ -396,7 +386,7 @@ fun FashionCheckbox(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp, // Texto más pequeño
+                        fontSize = 12.sp,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -407,7 +397,7 @@ fun FashionCheckbox(
             Text(
                 text = it,
                 color = MaterialTheme.colorScheme.error,
-                fontSize = 11.sp, // Texto de error más pequeño
+                fontSize = 11.sp,
                 modifier = Modifier.padding(start = 52.dp, top = 4.dp)
             )
         }

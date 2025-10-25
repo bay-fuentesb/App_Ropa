@@ -46,15 +46,11 @@ fun MisPrendas(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Estados para el filtro
     var mostrarFiltro by remember { mutableStateOf(false) }
     var categoriaFiltro by remember { mutableStateOf("Todas") }
     val categorias = listOf("Todas", "Polera", "Poleron", "Zapatilla", "Calcetines", "Accesorios", "Jockeys", "Chaqueta", "Parka", "Pantalon")
 
-    // Antes aquí se gestionaban estados para un modal de outfit sugerido;
-    // ahora el botón de sugerir navega a la pantalla `outfits`, por eso no guardamos ni mostramos sugerencias aquí.
 
-    // Filtrar prendas según la categoría seleccionada
     val prendasFiltradas = if (categoriaFiltro == "Todas") {
         prendas
     } else {
@@ -91,7 +87,6 @@ fun MisPrendas(
         }
     } else {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header con botones de navegación y filtro
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -99,7 +94,6 @@ fun MisPrendas(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón de Inicio
                 IconButton(
                     onClick = { navController.navigate("inicio") }
                 ) {
@@ -109,7 +103,6 @@ fun MisPrendas(
                     )
                 }
 
-                // Título centrado
                 Text(
                     text = "Mi Ropa",
                     fontSize = 22.sp,
@@ -118,7 +111,6 @@ fun MisPrendas(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 
-                // Botón de sugerencia de outfit
                 IconButton(
                     onClick = { navController.navigate("outfits") }
                 ) {
@@ -128,7 +120,6 @@ fun MisPrendas(
                     )
                 }
 
-                // Botón agregar más prendas
                 IconButton(
                     onClick = { navController.navigate("agregar") }
                 ) {
@@ -138,7 +129,6 @@ fun MisPrendas(
                     )
                 }
 
-                // Botón de filtro
                 IconButton(
                     onClick = { mostrarFiltro = !mostrarFiltro }
                 ) {
@@ -149,7 +139,6 @@ fun MisPrendas(
                 }
             }
 
-            // Mostrar filtro actual si no es "Todas"
             if (categoriaFiltro != "Todas") {
                 Text(
                     text = "Filtro: $categoriaFiltro",
@@ -163,7 +152,6 @@ fun MisPrendas(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Menú desplegable de filtros
             if (mostrarFiltro) {
                 Box(
                     modifier = Modifier
@@ -212,7 +200,6 @@ fun MisPrendas(
 
 
 
-            // Lista de prendas
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -285,5 +272,4 @@ fun PrendaCard(prenda: cl.duoc.myapplication.model.Prenda, context: android.cont
     }
 }
 
-// Eliminar OutfitSugeridoCard porque ya no se utiliza en esta pantalla
 

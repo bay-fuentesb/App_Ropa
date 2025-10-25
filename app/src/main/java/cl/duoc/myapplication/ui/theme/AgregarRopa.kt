@@ -73,7 +73,6 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Estado para el menú desplegable
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf("Accesorios", "Calcetines", "Chaqueta", "Jockey","Parka","Pantalones", "Polera", "Poleron", "Zapatilla")
 
@@ -204,9 +203,7 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo de categoría como menú desplegable - CORREGIDO
             Box(modifier = Modifier.fillMaxWidth()) {
-                // TextField que funciona como el "ancla" del DropdownMenu
                 OutlinedTextField(
                     value = category,
                     onValueChange = {},
@@ -225,7 +222,6 @@ fun AgregarRopa(navController: NavController, ropaViewModel: RopaViewModel) {
                         .clickable { expanded = true }
                 )
 
-                // DropdownMenu que se posiciona relativo al TextField
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }

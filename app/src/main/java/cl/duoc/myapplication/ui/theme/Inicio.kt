@@ -55,12 +55,10 @@ fun Inicio(navController: NavController? = null, ropaViewModel: RopaViewModel = 
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Mostrar outfits del usuario si existen, sino mostrar placeholders
             val userOutfits = ropaViewModel.outfits
             val context = LocalContext.current
 
             if (userOutfits.isNotEmpty()) {
-                // Mostrar hasta 3 outfits en fila
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     userOutfits.take(3).forEach { outfit ->
                         Card(
@@ -102,7 +100,6 @@ fun Inicio(navController: NavController? = null, ropaViewModel: RopaViewModel = 
                     }
                 }
             } else {
-                // Placeholder con drawables de ejemplo
                 val poleras = listOf(R.drawable.balenciaga, R.drawable.yeezy)
                 val pantalones = listOf(R.drawable.balenciaga, R.drawable.yeezy)
                 val zapatos = listOf(R.drawable.balenciaga, R.drawable.yeezy)
@@ -124,7 +121,6 @@ fun Inicio(navController: NavController? = null, ropaViewModel: RopaViewModel = 
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botón IR A OUTFITS justo debajo de la sección de outfits y arriba de Mi Ropa
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Button(onClick = { navController?.navigate("outfits") }, modifier = Modifier.fillMaxWidth(0.9f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                     Text(text = "Ir a Outfits", color = MaterialTheme.colorScheme.onPrimary)
