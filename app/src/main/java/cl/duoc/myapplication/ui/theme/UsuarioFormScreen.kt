@@ -125,10 +125,10 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                             modifier = Modifier
                                 .size(60.dp) // Reducido el tamaño
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(Color.White)
                                 .border(
                                     2.dp,
-                                    MaterialTheme.colorScheme.primaryContainer,
+                                    color = Color.White,
                                     RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center
