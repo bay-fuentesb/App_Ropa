@@ -1,4 +1,4 @@
-package cl.duoc.myapplication.ui.theme
+package cl.duoc.myapplication.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*

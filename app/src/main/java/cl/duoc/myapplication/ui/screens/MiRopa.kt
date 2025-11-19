@@ -1,4 +1,4 @@
-package cl.duoc.myapplication.ui.theme
+package cl.duoc.myapplication.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -29,12 +29,8 @@ import android.graphics.BitmapFactory
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Create
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import cl.duoc.myapplication.model.OutfitSugerido
-import cl.duoc.myapplication.repository.OutfitRepository
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable

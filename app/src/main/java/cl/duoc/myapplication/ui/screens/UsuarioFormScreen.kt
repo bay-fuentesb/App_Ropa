@@ -1,4 +1,5 @@
-package cl.duoc.myapplication.ui.theme
+package cl.duoc.myapplication.ui.screens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -50,23 +52,31 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.myapplication.R
+import cl.duoc.myapplication.model.User
+import cl.duoc.myapplication.ui.components.SessionManager
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewModel = viewModel()) {
-    val formState = viewModel.form.collectAsState(initial = viewModel.form.value)
+fun UsuarioFormScreen(navController: NavController) {
+    val context  = LocalContext .current
+    val sessionManager = remember { SessionManager(context) }
+    val viewModel :UsuarioFormViewModel = viewModel()
+
+    val formState = viewModel.form.collectAsState()
     val form = formState.value
-    val errorsState = viewModel.errors.collectAsState(initial = viewModel.errors.value)
+    val errorsState = viewModel.errors.collectAsState()
     val errors = errorsState.value
 
     var isLoading by remember { mutableStateOf(false) }
@@ -74,12 +84,45 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    // ✅ AGREGAR ESTADO PARA LA CONTRASEÑA
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF667eea),
             Color(0xFF764ba2)
         )
     )
+
+    // ✅ FUNCIÓN PARA VALIDAR CONTRASEÑA
+    fun validatePassword(): Boolean {
+        var isValid = true
+
+        if (password.isBlank()) {
+            passwordError = "La contraseña es obligatoria"
+            isValid = false
+        } else if (password.length < 6) {
+            passwordError = "Mínimo 6 caracteres"
+            isValid = false
+        } else {
+            passwordError = null
+        }
+
+        if (confirmPassword.isBlank()) {
+            confirmPasswordError = "Confirma tu contraseña"
+            isValid = false
+        } else if (password != confirmPassword) {
+            confirmPasswordError = "Las contraseñas no coinciden"
+            isValid = false
+        } else {
+            confirmPasswordError = null
+        }
+
+        return isValid
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -109,8 +152,8 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(scrollState) // Scroll añadido aquí
-                        .padding(24.dp), // Padding reducido
+                        .verticalScroll(scrollState)
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -120,7 +163,7 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(60.dp) // Reducido el tamaño
+                                .size(60.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(Color.White)
                                 .border(
@@ -134,14 +177,14 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                                 painter = painterResource(id = R.drawable.dresscodeicon),
                                 contentDescription = "Logo DressCode",
                                 modifier = Modifier.size(32.dp)
-                                )
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
                             text = "DressCode",
-                            fontSize = 20.sp, // Reducido el tamaño
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -150,7 +193,7 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
 
                         Text(
                             text = "Crea tu cuenta y ordena tu closet virtual",
-                            fontSize = 12.sp, // Reducido el tamaño
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
@@ -169,13 +212,24 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                     )
 
                     FashionTextField(
-                        value = form.correo,
-                        onValueChange = { viewModel.onCorreoChange(it) },
+                        value = form.apellido,
+                        onValueChange = { viewModel.onApellidoChange(it) },
+                        label = "Apellido",
+                        placeholder = "Ingresa tu apellido",
+                        leadingIcon = Icons.Default.Person,
+                        isError = errors.apellido != null,
+                        errorText = errors.apellido,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    FashionTextField(
+                        value = form.email,
+                        onValueChange = { viewModel.onEmailChange(it) },
                         label = "Correo electrónico",
                         placeholder = "tu@email.com",
                         leadingIcon = Icons.Default.Email,
-                        isError = errors.correo != null,
-                        errorText = errors.correo,
+                        isError = errors.email != null,
+                        errorText = errors.email,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -189,6 +243,40 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         isError = errors.edad != null,
                         errorText = errors.edad,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // ✅ AGREGAR CAMPO DE CONTRASEÑA
+                    FashionTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            if (passwordError != null) validatePassword()
+                        },
+                        label = "Contraseña",
+                        placeholder = "Mínimo 6 caracteres",
+                        leadingIcon = Icons.Default.Lock,
+                        isError = passwordError != null,
+                        errorText = passwordError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // ✅ AGREGAR CAMPO DE CONFIRMAR CONTRASEÑA
+                    FashionTextField(
+                        value = confirmPassword,
+                        onValueChange = {
+                            confirmPassword = it
+                            if (confirmPasswordError != null) validatePassword()
+                        },
+                        label = "Confirmar Contraseña",
+                        placeholder = "Repite tu contraseña",
+                        leadingIcon = Icons.Default.Lock,
+                        isError = confirmPasswordError != null,
+                        errorText = confirmPasswordError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -216,12 +304,29 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
 
                     Button(
                         onClick = {
-                            if (viewModel.isFormValid(errors)) {
+                            if (viewModel.isFormValid(errors) && validatePassword()) {
                                 isLoading = true
                                 scope.launch {
-                                    kotlinx.coroutines.delay(1500)
-                                    isLoading = false
-                                    navController.navigate("inicio")
+                                    val user = User(
+                                        nombre = form.nombre,
+                                        apellido = form.apellido,
+                                        email = form.email,
+                                        edad = form.edad,
+                                        password = password,
+                                        aceptaTerminos = form.aceptaTerminos,
+                                        quiereNotificaciones = form.quiereNotificaciones
+                                    )
+
+                                    val success = sessionManager.register(user)
+                                    isLoading= false
+                                    if(success){
+                                      navController.navigate("inicio")
+                                    }else {
+                                        snackbarHostState.showSnackbar(
+                                            "Error al crear la cuenta. Intenta nuevamente.",
+                                            withDismissAction = true
+                                        )
+                                    }
                                 }
                             } else {
                                 scope.launch {
@@ -264,6 +369,7 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
                         fontSize = 13.sp,
                         modifier = Modifier
                             .clickable {
+                                navController.navigate("login") // ✅ AGREGAR NAVEGACIÓN AL LOGIN
                             }
                             .padding(8.dp)
                     )
@@ -273,6 +379,7 @@ fun UsuarioFormScreen(navController: NavController, viewModel: UsuarioFormViewMo
     }
 }
 
+// ✅ AGREGAR PARÁMETRO PARA PasswordVisualTransformation EN FashionTextField
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FashionTextField(
@@ -284,6 +391,7 @@ fun FashionTextField(
     isError: Boolean = false,
     errorText: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None, // ✅ AGREGAR ESTE PARÁMETRO
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -294,7 +402,7 @@ fun FashionTextField(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 14.sp // Texto más pequeño
+                    fontSize = 14.sp
                 )
             },
             placeholder = {
@@ -311,15 +419,16 @@ fun FashionTextField(
                         contentDescription = null,
                         tint = if (isError) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp) // Icono más pequeño
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             },
             isError = isError,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp), // Altura fija para consistencia
+                .height(60.dp),
             keyboardOptions = keyboardOptions,
+            visualTransformation = visualTransformation, // ✅ USAR EL PARÁMETRO
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -341,6 +450,7 @@ fun FashionTextField(
     }
 }
 
+// El FashionCheckbox permanece igual
 @Composable
 fun FashionCheckbox(
     checked: Boolean,

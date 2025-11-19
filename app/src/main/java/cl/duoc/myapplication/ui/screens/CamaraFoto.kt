@@ -1,4 +1,4 @@
-package cl.duoc.myapplication.ui.theme
+package cl.duoc.myapplication.ui.screens
 
 import android.Manifest
 import android.graphics.Bitmap

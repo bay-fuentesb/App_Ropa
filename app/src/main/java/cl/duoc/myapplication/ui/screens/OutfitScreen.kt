@@ -23,7 +23,6 @@ import androidx.navigation.NavController
 import cl.duoc.myapplication.model.OutfitSugerido
 import cl.duoc.myapplication.repository.OutfitRepository
 import cl.duoc.myapplication.viewmodel.RopaViewModel
-import kotlinx.coroutines.launch
 import android.graphics.ImageDecoder
 import android.graphics.BitmapFactory
 import androidx.core.net.toUri
