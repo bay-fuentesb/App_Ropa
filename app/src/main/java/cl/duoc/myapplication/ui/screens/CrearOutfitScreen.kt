@@ -5,22 +5,29 @@ import android.graphics.ImageDecoder
 import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.core.net.toUri
@@ -40,16 +47,22 @@ fun CrearOutfitScreen(
 
     val prendasSeleccionadas = remember { mutableStateListOf<Prenda>() }
     var nombreOutfit by remember { mutableStateOf("") }
+    var mostrarError by remember { mutableStateOf(false) }
+    var mostrarDialogoGuardado by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear Outfit") },
+                title = { Text("Crear Outfit Personalizado") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { padding ->
@@ -60,59 +73,220 @@ fun CrearOutfitScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-
-            OutlinedTextField(
-                value = nombreOutfit,
-                onValueChange = { nombreOutfit = it },
-                label = { Text("Nombre del outfit") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text("Selecciona prendas:", style = MaterialTheme.typography.titleMedium)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // Sección de información y formulario
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                items(prendas) { prenda ->
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Crear Nuevo Outfit",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
-                    val isSelected = prendasSeleccionadas.contains(prenda)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    PrendaSeleccionableCard(
-                        prenda = prenda,
-                        context = context,
-                        seleccionado = isSelected,
-                        onClick = {
-                            if (isSelected) prendasSeleccionadas.remove(prenda)
-                            else prendasSeleccionadas.add(prenda)
+                    OutlinedTextField(
+                        value = nombreOutfit,
+                        onValueChange = {
+                            nombreOutfit = it
+                            mostrarError = false
+                        },
+                        label = { Text("Nombre del outfit") },
+                        placeholder = { Text("Ej: Outfit Casual, Look de Oficina...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = mostrarError && nombreOutfit.isBlank(),
+                        trailingIcon = {
+                            if (mostrarError && nombreOutfit.isBlank()) {
+                                Icon(Icons.Filled.Warning, "Error", tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     )
+
+                    if (mostrarError && nombreOutfit.isBlank()) {
+                        Text(
+                            text = "El nombre es obligatorio",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Contador de prendas seleccionadas
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Prendas seleccionadas: ${prendasSeleccionadas.size}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (prendasSeleccionadas.isNotEmpty()) {
+                            TextButton(onClick = { prendasSeleccionadas.clear() }) {
+                                Text("Limpiar selección")
+                            }
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // Sección de selección de prendas
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Selecciona prendas:",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
 
+                        Text(
+                            text = "${prendas.size} disponibles",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (prendas.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.balenciaga),
+                                contentDescription = "Sin prendas",
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No hay prendas disponibles",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Agrega algunas prendas primero",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(prendas) { prenda ->
+                                PrendaSeleccionableCard(
+                                    prenda = prenda,
+                                    context = context,
+                                    seleccionado = prendasSeleccionadas.contains(prenda),
+                                    onClick = {
+                                        if (prendasSeleccionadas.contains(prenda)) {
+                                            prendasSeleccionadas.remove(prenda)
+                                        } else {
+                                            prendasSeleccionadas.add(prenda)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botón de guardar
             Button(
                 onClick = {
-                    if (nombreOutfit.isNotBlank() && prendasSeleccionadas.isNotEmpty()) {
-                        ropaViewModel.agregarOutfit(
-                            OutfitSugerido(
-                                nombre = nombreOutfit,
-                                combinacion = prendasSeleccionadas.toList()
-                            )
+                    if (nombreOutfit.isBlank() || prendasSeleccionadas.isEmpty()) {
+                        mostrarError = true
+                    } else {
+                        val nuevoOutfit = OutfitSugerido(
+                            nombre = nombreOutfit,
+                            combinacion = prendasSeleccionadas.toList()
                         )
-                        navController.popBackStack()
+                        ropaViewModel.agregarOutfit(nuevoOutfit)
+                        mostrarDialogoGuardado = true
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = prendasSeleccionadas.isNotEmpty() && nombreOutfit.isNotBlank(),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Guardar outfit")
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = "Guardar",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Guardar Outfit",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            // Mensaje de validación
+            if (mostrarError && prendasSeleccionadas.isEmpty()) {
+                Text(
+                    text = "Selecciona al menos una prenda",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
             }
         }
+    }
+
+    // Diálogo de confirmación
+    if (mostrarDialogoGuardado) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoGuardado = false },
+            title = { Text("Outfit Guardado") },
+            text = {
+                Text("Tu outfit \"$nombreOutfit\" ha sido creado exitosamente con ${prendasSeleccionadas.size} prendas.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoGuardado = false
+                        navController.popBackStack()
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 }
 
@@ -150,43 +324,103 @@ fun PrendaSeleccionableCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(if (seleccionado) 8.dp else 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (seleccionado) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-            else MaterialTheme.colorScheme.surface
-        )
+            containerColor = if (seleccionado) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        border = if (seleccionado) {
+            CardDefaults.outlinedCardBorder()
+        } else {
+            null
+        }
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-            if (bitmap != null)
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.size(70.dp),
-                    contentScale = ContentScale.Crop
-                )
-            else
-                Image(
-                    painter = painterResource(R.drawable.balenciaga),
-                    contentDescription = null,
-                    modifier = Modifier.size(70.dp),
-                    contentScale = ContentScale.Crop
-                )
+            // Indicador de selección
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(
+                        color = if (seleccionado) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = CircleShape
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = if (seleccionado) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline,
+                        shape = CircleShape
+                    )
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(prenda.titulo, style = MaterialTheme.typography.titleMedium)
-                Text(prenda.categoria)
-            }
-
+            // Imagen de la prenda
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.balenciaga),
+                        contentDescription = "Imagen por defecto",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Información de la prenda
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = prenda.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = prenda.categoria,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Color: ${prenda.color}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+
+            // Indicador de color
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
                     .background(colorParse, CircleShape)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = CircleShape
+                    )
             )
         }
     }
