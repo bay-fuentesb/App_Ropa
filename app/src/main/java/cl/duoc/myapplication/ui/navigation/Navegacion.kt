@@ -15,7 +15,8 @@ import cl.duoc.myapplication.ui.screens.AgregarRopa
 import cl.duoc.myapplication.ui.screens.CamaraFotos
 import cl.duoc.myapplication.ui.screens.CrearOutfitScreen
 import cl.duoc.myapplication.ui.screens.MisPrendas
-import cl.duoc.myapplication.ui.theme.OutfitsScreen
+import cl.duoc.myapplication.ui.screens.OutfitSugeridoScreen
+import cl.duoc.myapplication.ui.screens.OutfitsScreen
 import cl.duoc.myapplication.ui.screens.Recomendaciones
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
@@ -151,7 +152,24 @@ fun Navegacion() {
                 }
             }
 
+
             CrearOutfitScreen(
+                navController = navController,
+                ropaViewModel = ropaViewModel
+            )
+        }
+
+        composable("outfitSugerido") {
+            // Proteger esta pantalla
+            LaunchedEffect(Unit) {
+                if (!sessionManager.isLoggedIn()) {
+                    navController.navigate("login") {
+                        popUpTo("outfitSugerido") { inclusive = true }
+                    }
+                }
+            }
+
+            OutfitSugeridoScreen(
                 navController = navController,
                 ropaViewModel = ropaViewModel
             )
