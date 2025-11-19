@@ -34,182 +34,217 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 
 @Composable
-fun Inicio(navController: NavController? = null,
-           ropaViewModel: RopaViewModel = viewModel()
+fun Inicio(
+    navController: NavController? = null,
+    ropaViewModel: RopaViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val scope = rememberCoroutineScope()
-    val usuarioLogueado = remember {mutableStateOf<String?>(null)}
+    val usuarioLogueado = remember { mutableStateOf<String?>(null) }
 
-    //cargar usuario al iniciar
-    LaunchedEffect(Unit){
+    // Cargar usuario al iniciar
+    LaunchedEffect(Unit) {
         usuarioLogueado.value = sessionManager.getCurrentUser()
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            // Header con información de usuario y botón de cerrar sesión
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Información del usuario logueado
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_person), // Necesitarás agregar este icono
-                        contentDescription = "Usuario",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Bienvenido",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            // ⭐ HEADER
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_person),
+                            contentDescription = "Usuario",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Bienvenido",
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = usuarioLogueado.value ?: "Usuario",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                sessionManager.logout()
+                                navController?.navigate("login") {
+                                    popUpTo("inicio") { inclusive = true }
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_logout),
+                            contentDescription = "Cerrar sesión",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            // ⭐ OUTFTIS SECTION
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+
                         Text(
-                            text = usuarioLogueado.value?: "Usuario",
-                            fontSize = 18.sp,
+                            text = "🎯 Tus Outfits",
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
-                    }
-                }
 
-                // Botón de cerrar sesión
-                IconButton(
-                    onClick = {
-                        scope.launch{
-                            sessionManager.logout()
-                            navController?.navigate("login"){
-                                popUpTo("inicio"){ inclusive = true }
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Revisa y gestiona tus outfits guardados. Crea nuevas combinaciones y organiza tu estilo.",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            lineHeight = 18.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val userOutfits = ropaViewModel.outfits
+
+                        if (userOutfits.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                userOutfits.take(3).forEach { outfit ->
+                                    OutfitCard(outfit = outfit, context = context)
+                                }
                             }
+                        } else {
+                            RandomOutfitCard()
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = { navController?.navigate("outfits") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(
+                                text = "Ver todos mis outfits",
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
+                }
+            }
+
+            // ⭐ ARMARIO SECTION
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_logout), // Necesitarás agregar este icono
-                        contentDescription = "Cerrar sesión",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+                    Column(modifier = Modifier.padding(16.dp)) {
 
-            Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "👕 Mi Armario",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
 
-            // Sección de Outfits con descripción
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "🎯 Tus Outfits",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Administra tu colección de ropa. Agrega nuevas prendas, organiza por categorías y mantén tu armario actualizado.",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            lineHeight = 18.sp
+                        )
 
-                    Text(
-                        text = "Revisa y gestiona tus outfits guardados. Crea nuevas combinaciones y organiza tu estilo.",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        lineHeight = 18.sp
-                    )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            ProductSmallCard(
+                                imageRes = R.drawable.balenciaga,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProductSmallCard(
+                                imageRes = R.drawable.yeezy,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
 
-                    val userOutfits = ropaViewModel.outfits
-                    val context = LocalContext.current
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    if (userOutfits.isNotEmpty()) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            userOutfits.take(3).forEach { outfit ->
-                                OutfitCard(outfit = outfit, context = context)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { navController?.navigate("miRopa") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text(
+                                    text = "Ver todo mi armario",
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
                             }
-                        }
-                    } else {
-                        // Outfit aleatorio de ejemplo
-                        RandomOutfitCard()
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { navController?.navigate("outfits") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text(text = "Ver todos mis outfits", color = MaterialTheme.colorScheme.onPrimary)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Sección de Mi Ropa con descripción
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "👕 Mi Armario",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Administra tu colección de ropa. Agrega nuevas prendas, organiza por categorías y mantén tu armario actualizado.",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ProductSmallCard(imageRes = R.drawable.balenciaga, modifier = Modifier.weight(1f))
-                        ProductSmallCard(imageRes = R.drawable.yeezy, modifier = Modifier.weight(1f))
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { navController?.navigate("miRopa") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(text = "Ver todo mi armario", color = MaterialTheme.colorScheme.onPrimary)
-                        }
-
-                        Button(
-                            onClick = { navController?.navigate("agregar") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Text(text = "➕ Agregar nueva prenda", color = MaterialTheme.colorScheme.onSecondary)
+                            Button(
+                                onClick = { navController?.navigate("agregar") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary
+                                )
+                            ) {
+                                Text(
+                                    text = "➕ Agregar nueva prenda",
+                                    color = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
                         }
                     }
                 }
@@ -217,6 +252,7 @@ fun Inicio(navController: NavController? = null,
         }
     }
 }
+
 
 @Composable
 private fun OutfitCard(outfit: OutfitSugerido, context: Context) {
