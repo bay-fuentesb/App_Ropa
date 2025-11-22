@@ -18,6 +18,7 @@ import cl.duoc.myapplication.ui.screens.MisPrendas
 import cl.duoc.myapplication.ui.screens.OutfitSugeridoScreen
 import cl.duoc.myapplication.ui.screens.OutfitsScreen
 import cl.duoc.myapplication.ui.screens.Recomendaciones
+import cl.duoc.myapplication.ui.screens.TestApiScreen
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
 
@@ -45,11 +46,20 @@ fun Navegacion() {
             LoginScreen(navController = navController)
         }
 
+
         composable("registro") {
             val viewModel: UsuarioFormViewModel = viewModel()
             UsuarioFormScreen(
                 navController = navController
             )
+        }
+
+        composable("testApi") {
+            TestApiScreen(
+                ropaViewModel= ropaViewModel,
+                onVolver = {
+                    navController.popBackStack()
+                })
         }
 
         composable("inicio") {

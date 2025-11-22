@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,9 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import cl.duoc.myapplication.R
 import cl.duoc.myapplication.model.Prenda
+import cl.duoc.myapplication.ui.utils.ColorUtils
+import cl.duoc.myapplication.ui.utils.ImageUtils
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -50,30 +50,13 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var colorHex by remember { mutableStateOf("#FFFFFF") }
-
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf("Accesorios", "Calcetines", "Chaqueta", "Jockey","Parka","Pantalones", "Polera", "Poleron", "Zapatilla")
 
-    // --- helpers para cargar bitmap desde Uri ---
-    fun loadBitmap(uri: Uri): Bitmap? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val src = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(src)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
 
     // --- cámara / galería ---
     var cameraTempFile by remember { mutableStateOf<File?>(null) }
@@ -81,7 +64,7 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
         if (success && cameraTempFile != null) {
             val uri = FileProvider.getUriForFile(context, context.packageName + ".provider", cameraTempFile!!)
             imageUri = uri
-            bitmap = loadBitmap(uri)
+            bitmap = ImageUtils.loadBitmap(context, uri)
         }
     }
 
@@ -101,7 +84,9 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         imageUri = uri
-        if (uri != null) bitmap = loadBitmap(uri)
+        if (uri != null) {
+            bitmap = ImageUtils.loadBitmap(context, uri)
+        }
     }
 
     // ----------------------------
@@ -121,8 +106,8 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
         return String.format("#%06X", 0xFFFFFF and colorInt)
     }
     LaunchedEffect(hue, sat, value) {
-        val cInt = hsvToColorInt(hue, sat, value)
-        colorHex = intToHexString(cInt)
+        val cInt = ColorUtils.hsvToColorInt(hue, sat, value)
+        colorHex = ColorUtils.intToHexString(cInt)
     }
 
     // Para scroll principal
@@ -358,15 +343,26 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
             Button(
                 onClick = {
                     if (imageUri != null && title.isNotBlank() && category.isNotBlank()) {
-                        ropaViewModel.agregarPrenda(
-                            Prenda(
-                                titulo = title,
-                                categoria = category,
-                                color = colorHex,
-                                imagenUri = imageUri.toString()
+
+                        //Guardamos la imagen fisicamente en la app
+                        val rutaImagenGuardada = ImageUtils.copiarImagenAlmacenamiento(context, imageUri!!)
+
+                        if (rutaImagenGuardada != null) {
+                            ropaViewModel.agregarPrenda(
+                                Prenda(
+                                    titulo = title,
+                                    categoria = category,
+                                    color = colorHex,
+                                    imagenUri = rutaImagenGuardada
+                                )
                             )
-                        )
-                        navController.navigate("miRopa")
+                            navController.navigate("miRopa")
+                        }else{
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Error al guardar la imagen")
+                            }
+                        }
+
                     } else {
                         val mensaje = when {
                             imageUri == null -> "Agrega una imagen"

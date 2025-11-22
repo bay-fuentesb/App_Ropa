@@ -1,40 +1,38 @@
 package cl.duoc.myapplication.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.R
-import androidx.lifecycle.viewmodel.compose.viewModel
-import cl.duoc.myapplication.viewmodel.RopaViewModel
-import androidx.compose.ui.platform.LocalContext
-import android.os.Build
-import android.graphics.ImageDecoder
-import android.graphics.BitmapFactory
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.core.net.toUri
 import cl.duoc.myapplication.model.OutfitSugerido
+import cl.duoc.myapplication.ui.components.EmptyStateCard
+import cl.duoc.myapplication.ui.components.PrendaImagen // <-- Importamos el componente inteligente
 import cl.duoc.myapplication.ui.components.SessionManager
+import cl.duoc.myapplication.ui.components.StatCard
+import cl.duoc.myapplication.viewmodel.RopaViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 
 @Composable
 fun Inicio(
@@ -46,356 +44,204 @@ fun Inicio(
     val scope = rememberCoroutineScope()
     val usuarioLogueado = remember { mutableStateOf<String?>(null) }
 
-    // Cargar usuario al iniciar
     LaunchedEffect(Unit) {
         usuarioLogueado.value = sessionManager.getCurrentUser()
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // 1. HEADER
+            item {
+                HeaderSaludo(
+                    nombreUsuario = usuarioLogueado.value,
+                    onLogout = {
+                        scope.launch {
+                            sessionManager.logout()
+                            navController?.navigate("login") { popUpTo("inicio") { inclusive = true } }
+                        }
+                    }
+                )
+            }
 
-            // ⭐ HEADER
+            // 2. ESTADÍSTICAS (Usando componente compartido)
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_person),
-                            contentDescription = "Usuario",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "Bienvenido",
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = usuarioLogueado.value ?: "Usuario",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    StatCard(
+                        title = "Prendas",
+                        count = ropaViewModel.prendas.size.toString(),
+                        icon = R.drawable.balenciaga,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "Outfits",
+                        count = ropaViewModel.outfits.size.toString(),
+                        icon = R.drawable.yeezy,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                sessionManager.logout()
-                                navController?.navigate("login") {
-                                    popUpTo("inicio") { inclusive = true }
-                                }
-                            }
-                        }
+            // 3. OUTFITS DESTACADOS
+            item {
+                SectionTitle(title = "Tus Outfits Destacados")
+                val userOutfits = ropaViewModel.outfits
+
+                if (userOutfits.isNotEmpty()) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_logout),
-                            contentDescription = "Cerrar sesión",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                        items(userOutfits) { outfit ->
+                            OutfitCard(outfit = outfit)
+                        }
+                        item {
+                            VerTodosCard { navController?.navigate("outfits") }
+                        }
                     }
-                }
-            }
-
-            // ⭐ OUTFTIS SECTION
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                } else {
+                    EmptyStateCard(
+                        text = "Aún no tienes outfits creados",
+                        buttonText = "Crear Outfit",
+                        onClick = { navController?.navigate("outfits") }
                     )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-
-                        Text(
-                            text = "🎯 Tus Outfits",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "Revisa y gestiona tus outfits guardados. Crea nuevas combinaciones y organiza tu estilo.",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            lineHeight = 18.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val userOutfits = ropaViewModel.outfits
-
-                        if (userOutfits.isNotEmpty()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                userOutfits.take(3).forEach { outfit ->
-                                    OutfitCard(outfit = outfit, context = context)
-                                }
-                            }
-                        } else {
-                            RandomOutfitCard()
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Button(
-                            onClick = { navController?.navigate("outfits") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text(
-                                text = "Ver todos mis outfits",
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
                 }
             }
 
-            // ⭐ ARMARIO SECTION
+            // 4. MI ARMARIO
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                SectionTitle(title = "Gestión de Armario")
+                CardArmario(
+                    onAgregar = { navController?.navigate("agregar") },
+                    onVerTodo = { navController?.navigate("miRopa") }
+                )
+            }
 
-                        Text(
-                            text = "👕 Mi Armario",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "Administra tu colección de ropa. Agrega nuevas prendas, organiza por categorías y mantén tu armario actualizado.",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            lineHeight = 18.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            ProductSmallCard(
-                                imageRes = R.drawable.balenciaga,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ProductSmallCard(
-                                imageRes = R.drawable.yeezy,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { navController?.navigate("miRopa") },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text(
-                                    text = "Ver todo mi armario",
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-
-                            Button(
-                                onClick = { navController?.navigate("agregar") },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) {
-                                Text(
-                                    text = "➕ Agregar nueva prenda",
-                                    color = MaterialTheme.colorScheme.onSecondary
-                                )
-                            }
-                        }
-                    }
+            item{
+                Button(
+                    onClick = { navController?.navigate("testApi")},
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                ){
+                    Text("Test API Nube")
                 }
             }
+
+
         }
     }
 }
 
+// --- COMPONENTES PRIVADOS (Solo usados en Inicio) ---
 
 @Composable
-private fun OutfitCard(outfit: OutfitSugerido, context: Context) {
-    Card(
-        modifier = Modifier
-            .width(120.dp)
-            .height(160.dp),
-        shape = RoundedCornerShape(10.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+private fun HeaderSaludo(nombreUsuario: String?, onLogout: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = outfit.nombre,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                outfit.combinacion.take(3).forEach { prenda ->
-                    val uri = try { prenda.imagenUri.toUri() } catch (_: Exception) { null }
-                    val bitmap = remember(uri) {
-                        try {
-                            if (uri != null) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                    val src = ImageDecoder.createSource(context.contentResolver, uri)
-                                    ImageDecoder.decodeBitmap(src)
-                                } else {
-                                    val stream = context.contentResolver.openInputStream(uri)
-                                    stream.use { BitmapFactory.decodeStream(it) }
-                                }
-                            } else null
-                        } catch (_: Exception) { null }
-                    }
-
-                    if (bitmap != null) {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = prenda.titulo,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.drawable.balenciaga),
-                            contentDescription = prenda.titulo,
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Face, "Avatar", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text("Hola, de nuevo! 👋", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(nombreUsuario ?: "Invitado", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
         }
-    }
-}
-
-@Composable
-private fun RandomOutfitCard() {
-    val poleras = listOf(R.drawable.balenciaga, R.drawable.yeezy)
-    val pantalones = listOf(R.drawable.balenciaga, R.drawable.yeezy)
-    val zapatos = listOf(R.drawable.balenciaga, R.drawable.yeezy)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(160.dp),
-        shape = RoundedCornerShape(10.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        IconButton(
+            onClick = onLogout,
+            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.error)
         ) {
-            Text(
-                text = "Crea tu primer outfit!",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutfitItem(imageRes = poleras.random(), label = "Polera", modifier = Modifier.weight(1f))
-                OutfitItem(imageRes = pantalones.random(), label = "Pantalón", modifier = Modifier.weight(1f))
-                OutfitItem(imageRes = zapatos.random(), label = "Zapato", modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ExitToApp, "Salir")
+        }
+    }
+}
+
+@Composable
+private fun OutfitCard(outfit: OutfitSugerido) {
+    Card(
+        modifier = Modifier.width(160.dp).height(200.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
+                val prendasMuestra = outfit.combinacion.take(2)
+                if (prendasMuestra.isNotEmpty()) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        prendasMuestra.forEach { prenda ->
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight().padding(1.dp)) {
+                                // AQUÍ USAMOS EL COMPONENTE QUE ARREGLA LA ROTACIÓN 👇
+                                PrendaImagen(imagenPath = prenda.imagenUri, modifier = Modifier.fillMaxSize())
+                            }
+                        }
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(outfit.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("${outfit.combinacion.size} prendas", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-private fun ProductSmallCard(imageRes: Int, modifier: Modifier = Modifier) {
+private fun CardArmario(onAgregar: () -> Unit, onVerTodo: () -> Unit) {
     Card(
-        modifier = modifier
-            .height(120.dp),
-        shape = RoundedCornerShape(10.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            contentScale = ContentScale.Crop
-        )
+        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("¿Nueva compra?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Agrega tus prendas nuevas.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(onClick = onAgregar, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
+                    Text("Agregar Prenda")
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Image(painter = painterResource(id = R.drawable.balenciaga), contentDescription = null, modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+        }
+        Divider(modifier = Modifier.padding(horizontal = 16.dp))
+        TextButton(onClick = onVerTodo, modifier = Modifier.fillMaxWidth().padding(8.dp)) { Text("Ver todo mi armario") }
     }
 }
 
 @Composable
-private fun OutfitItem(imageRes: Int, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        Card(
-            modifier = Modifier
-                .height(140.dp)
-                .fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(2.dp)
-            ) {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = label,
-                modifier = Modifier.fillMaxWidth()
-                    .height(140.dp),
-                contentScale = ContentScale.Crop
-            )
+private fun SectionTitle(title: String) {
+    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp, start = 4.dp))
+}
+
+@Composable
+private fun VerTodosCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.width(100.dp).height(200.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        onClick = onClick
+    ) {
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.Star, contentDescription = null)
+            Text("Ver todos", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
-        Spacer (modifier = Modifier.height(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
     }
 }

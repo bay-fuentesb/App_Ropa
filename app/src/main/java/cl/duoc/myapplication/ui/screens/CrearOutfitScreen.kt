@@ -3,7 +3,6 @@ package cl.duoc.myapplication.ui.screens
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.os.Build
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,9 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +32,7 @@ import cl.duoc.myapplication.viewmodel.RopaViewModel
 import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.model.OutfitSugerido
 import cl.duoc.myapplication.R
+import cl.duoc.myapplication.ui.components.PrendaImagen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -355,36 +353,30 @@ fun PrendaSeleccionableCard(
                         color = if (seleccionado) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.outline,
                         shape = CircleShape
-                    )
+                    ),
+                contentAlignment = Alignment.Center
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Imagen de la prenda
-            Box(
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(R.drawable.balenciaga),
-                        contentDescription = "Imagen por defecto",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        contentScale = ContentScale.Fit
+            {
+                if (seleccionado) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = "Seleccionado",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Llamada funcion corregido Prenda
+            PrendaImagen(
+                imagenPath = prenda.imagenUri,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+        }
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -404,11 +396,6 @@ fun PrendaSeleccionableCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = "Color: ${prenda.color}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
             }
 
             // Indicador de color
@@ -424,4 +411,3 @@ fun PrendaSeleccionableCard(
             )
         }
     }
-}

@@ -1,11 +1,19 @@
 package cl.duoc.myapplication.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.mutableStateListOf
 import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.model.OutfitSugerido
+import cl.duoc.myapplication.repository.RopaRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RopaViewModel : ViewModel() {
+
+    // Instancia del repositorio para conectar con AWS
+    private val repository = RopaRepository()
 
     private val _prendas = mutableStateListOf<Prenda>()
     val prendas: List<Prenda> = _prendas
@@ -13,7 +21,7 @@ class RopaViewModel : ViewModel() {
     private val _outfits = mutableStateListOf<OutfitSugerido>()
     val outfits: List<OutfitSugerido> = _outfits
 
-    // Estado de carga
+    // Estado de carga (Mantenemos tu lógica de lista)
     private val _isLoading = mutableStateListOf<Boolean>()
     val isLoading: Boolean
         get() = _isLoading.isNotEmpty() && _isLoading.first()
@@ -23,45 +31,131 @@ class RopaViewModel : ViewModel() {
     val errorMessage: String?
         get() = _errorMessage.firstOrNull()
 
-    // Mantener tus métodos originales
+    // ------------------------------------------------------
+    // 🚀 BLOQUE DE INICIALIZACIÓN (Carga desde la Nube)
+    // ------------------------------------------------------
+    init {
+        cargarPrendasDesdeApi()
+    }
+
+    fun cargarPrendasDesdeApi() {
+        viewModelScope.launch(Dispatchers.IO) {
+            setLoading(true)
+            try {
+                // 1. Pedimos datos a AWS
+                val listaRemota = repository.obtenerPrendaEnApi()
+
+                withContext(Dispatchers.Main) {
+                    if (listaRemota != null) {
+                        _prendas.clear()
+                        _prendas.addAll(listaRemota)
+                        println("✅ Prendas cargadas desde AWS: ${listaRemota.size}")
+                    } else {
+                        _errorMessage.add("Error al conectar con el servidor")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _errorMessage.add("Error de red: ${e.message}")
+                }
+            } finally {
+                setLoading(false)
+            }
+        }
+    }
+
+    // ------------------------------------------------------
+    // ☁️ MÉTODOS CONECTADOS A LA API
+    // ------------------------------------------------------
+
     fun agregarPrenda(prenda: Prenda) {
-        _prendas.add(prenda)
-        println("Prenda agregada: ${prenda.titulo}. Total: ${_prendas.size}")
-    }
+        viewModelScope.launch(Dispatchers.IO) {
+            setLoading(true)
+            // 1. Enviamos a AWS
+            val prendaCreada = repository.crearPrendaEnApi(prenda)
 
-    fun agregarOutfit(outfit: OutfitSugerido) {
-        _outfits.add(0, outfit) // agregar al inicio
-        println("Outfit agregado: ${outfit.nombre}. Total: ${_outfits.size}")
+            withContext(Dispatchers.Main) {
+                if (prendaCreada != null) {
+                    // 2. Si AWS responde OK, agregamos a la lista local la prenda QUE VOLVIÓ DEL SERVIDOR
+                    // (Esto es importante porque la que vuelve tiene el ID real de MySQL)
+                    _prendas.add(prendaCreada)
+                    println("✅ Prenda guardada en Nube: ${prendaCreada.titulo}. ID: ${prendaCreada.id}")
+                } else {
+                    // Fallback: Si falla internet, podrías guardarla localmente o avisar
+                    _errorMessage.add("No se pudo guardar en la nube. Revisa tu conexión.")
+                    // Opcional: _prendas.add(prenda) // Solo si quieres persistencia local temporal
+                }
+                setLoading(false)
+            }
+        }
     }
-
-    // Nuevos métodos adicionales
 
     fun eliminarPrenda(prenda: Prenda) {
-        _prendas.remove(prenda)
-        println("Prenda eliminada: ${prenda.titulo}. Total: ${_prendas.size}")
+        if (prenda.id == null) {
+            // Si no tiene ID, solo la borramos de memoria local
+            _prendas.remove(prenda)
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            setLoading(true)
+            // 1. Borramos en AWS
+            val exito = repository.eliminarPrendaEnApi(prenda.id) // Asegúrate de implementar esto en el Repo
+
+            withContext(Dispatchers.Main) {
+                if (exito) {
+                    _prendas.remove(prenda)
+                    println("🗑️ Prenda eliminada de Nube y Local: ${prenda.titulo}")
+                } else {
+                    _errorMessage.add("Error al eliminar la prenda del servidor")
+                }
+                setLoading(false)
+            }
+        }
+    }
+
+    // ------------------------------------------------------
+    // ⚙️ MÉTODOS AUXILIARES (Lógica Local)
+    // ------------------------------------------------------
+    // Estos se mantienen casi igual porque trabajan sobre la lista _prendas ya cargada
+
+    private fun setLoading(loading: Boolean) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _isLoading.clear()
+            if (loading) _isLoading.add(true)
+        }
     }
 
     fun eliminarPrendaPorId(id: Long) {
-        _prendas.removeAll { it.id == id }
-        println("Prenda eliminada por ID: $id. Total: ${_prendas.size}")
+        val prenda = _prendas.find { it.id == id }
+        if (prenda != null) {
+            eliminarPrenda(prenda)
+        }
     }
 
+    // Nota: Para actualizar, necesitarías un endpoint PUT en tu API Java.
+    // Por ahora lo dejamos local, pero recuerda que al reiniciar la app volverá el dato viejo.
     fun actualizarPrenda(prendaActualizada: Prenda) {
         val index = _prendas.indexOfFirst { it.id == prendaActualizada.id }
         if (index != -1) {
             _prendas[index] = prendaActualizada
-            println("Prenda actualizada: ${prendaActualizada.titulo}")
+            println("Prenda actualizada localmente: ${prendaActualizada.titulo}")
         }
+    }
+
+    // --- LÓGICA DE OUTFITS (Local por ahora, a menos que crees API de Outfits) ---
+
+    fun agregarOutfit(outfit: OutfitSugerido) {
+        _outfits.add(0, outfit)
+        println("Outfit agregado: ${outfit.nombre}. Total: ${_outfits.size}")
     }
 
     fun eliminarOutfit(outfit: OutfitSugerido) {
         _outfits.remove(outfit)
-        println("Outfit eliminado: ${outfit.nombre}. Total: ${_outfits.size}")
     }
 
     fun eliminarOutfitPorId(id: Long) {
         _outfits.removeAll { it.id == id }
-        println("Outfit eliminado por ID: $id. Total: ${_outfits.size}")
     }
 
     fun obtenerPrendaPorId(id: Long): Prenda? {
@@ -76,71 +170,23 @@ class RopaViewModel : ViewModel() {
         _errorMessage.clear()
     }
 
-    // Método para cargar prendas de ejemplo (compatible con tu estructura)
+    // Cargar ejemplos (Solo local, útil para testing)
     fun cargarPrendasDeEjemplo() {
-        _isLoading.clear()
-        _isLoading.add(true)
-
-        try {
-            val prendasEjemplo = listOf(
-                Prenda(
-                    titulo = "Polera Negra Básica",
-                    categoria = "Polera",
-                    color = "Negro",
-                    imagenUri = ""
-                ),
-                Prenda(
-                    titulo = "Jeans Azul Clásico",
-                    categoria = "Pantalones",
-                    color = "Azul",
-                    imagenUri = ""
-                ),
-                Prenda(
-                    titulo = "Zapatillas Blancas Deportivas",
-                    categoria = "Zapatilla",
-                    color = "Blanco",
-                    imagenUri = ""
-                ),
-                Prenda(
-                    titulo = "Chaqueta Denim",
-                    categoria = "Chaqueta",
-                    color = "Azul",
-                    imagenUri = ""
-                ),
-                Prenda(
-                    titulo = "Polerón Gris con Capucha",
-                    categoria = "Poleron",
-                    color = "Gris",
-                    imagenUri = ""
-                ),
-                Prenda(
-                    titulo = "Short Deportivo Negro",
-                    categoria = "Short",
-                    color = "Negro",
-                    imagenUri = ""
-                )
-            )
-
-            _prendas.clear()
-            _prendas.addAll(prendasEjemplo)
-            println("Prendas de ejemplo cargadas: ${prendasEjemplo.size} prendas")
-
-        } catch (e: Exception) {
-            _errorMessage.clear()
-            _errorMessage.add("Error al cargar prendas: ${e.message}")
-        } finally {
-            _isLoading.clear()
-        }
+        val prendasEjemplo = listOf(
+            Prenda(titulo = "Polera Negra", categoria = "Polera", color = "Negro", imagenUri = ""),
+            Prenda(titulo = "Jeans Azul", categoria = "Pantalones", color = "Azul", imagenUri = "")
+        )
+        // Opcional: Podrías recorrer esta lista y llamar a agregarPrenda(p) para subirlas todas a AWS
+        _prendas.addAll(prendasEjemplo)
     }
 
     fun limpiarPrendas() {
         _prendas.clear()
-        println("Todas las prendas han sido eliminadas")
+        // Ojo: Esto solo limpia la pantalla, no borra la base de datos de AWS masivamente
     }
 
     fun limpiarOutfits() {
         _outfits.clear()
-        println("Todos los outfits han sido eliminados")
     }
 
     fun obtenerPrendasPorCategoria(categoria: String): List<Prenda> {
@@ -169,25 +215,17 @@ class RopaViewModel : ViewModel() {
         )
     }
 
-    // Filtrado de prendas
-    fun filtrarPrendas(
-        categoria: String? = null,
-        color: String? = null,
-        query: String? = null
-    ): List<Prenda> {
+    fun filtrarPrendas(categoria: String? = null, color: String? = null, query: String? = null): List<Prenda> {
         return _prendas.filter { prenda ->
             (categoria == null || prenda.categoria.equals(categoria, ignoreCase = true)) &&
                     (color == null || prenda.color.equals(color, ignoreCase = true)) &&
-                    (query == null || prenda.titulo.contains(query, ignoreCase = true) ||
-                            prenda.categoria.contains(query, ignoreCase = true))
+                    (query == null || prenda.titulo.contains(query, ignoreCase = true) || prenda.categoria.contains(query, ignoreCase = true))
         }
     }
 
-    // Método para verificar si una prenda ya existe
     fun existePrenda(titulo: String, categoria: String): Boolean {
         return _prendas.any {
-            it.titulo.equals(titulo, ignoreCase = true) &&
-                    it.categoria.equals(categoria, ignoreCase = true)
+            it.titulo.equals(titulo, ignoreCase = true) && it.categoria.equals(categoria, ignoreCase = true)
         }
     }
 }

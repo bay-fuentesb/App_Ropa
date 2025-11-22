@@ -3,7 +3,6 @@ package cl.duoc.myapplication.ui.screens
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.os.Build
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,18 +18,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.net.toUri
-import cl.duoc.myapplication.R
 import cl.duoc.myapplication.viewmodel.RopaViewModel
+import cl.duoc.myapplication.ui.components.PrendaImagen
 
 @Composable
 fun MisPrendas(
@@ -196,25 +192,13 @@ fun PrendaCard(prenda: cl.duoc.myapplication.model.Prenda, context: android.cont
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
 
-            // Imagen
-            if (bitmap != null)
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
-            else
-                Image(
-                    painter = painterResource(R.drawable.balenciaga),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
+           PrendaImagen(
+                imagenPath = prenda.imagenUri,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+
+           )
 
             Spacer(modifier = Modifier.height(10.dp))
 

@@ -1,23 +1,30 @@
 package cl.duoc.myapplication.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.model.Prenda
-import cl.duoc.myapplication.viewmodel.RopaViewModel
 import cl.duoc.myapplication.repository.OutfitRepository
+import cl.duoc.myapplication.ui.components.PrendaImagen
+import cl.duoc.myapplication.viewmodel.RopaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +46,10 @@ fun OutfitSugeridoScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
@@ -52,124 +62,126 @@ fun OutfitSugeridoScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // Mostrar mensaje de error si existe
-            mensajeError?.let { error ->
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(8.dp)
-                )
+            // 1. MENSAJE DE ERROR (Si existe)
+            if (mensajeError != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = mensajeError!!, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
             }
 
-            if (outfit == null) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Aún no has generado un outfit",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(8.dp)
-                    )
-
-                    Text(
-                        text = "Prendas disponibles: ${prendas.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(4.dp)
-                    )
-
-                    if (prendas.isNotEmpty()) {
+            // 2. CONTENIDO PRINCIPAL (Con Weight para el Scroll)
+            Box(
+                modifier = Modifier
+                    .weight(1f) // OCUPA TODO EL ESPACIO DISPONIBLE
+                    .fillMaxWidth()
+            ) {
+                if (outfit == null) {
+                    // VISTA SIN OUTFIT
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(
-                            text = "Categorías: ${prendas.map { it.categoria }.distinct().joinToString()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(4.dp)
+                            text = "Aún no has generado un outfit",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Prendas disponibles: ${prendas.size}",
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                }
-            } else {
-                Text(
-                    text = outfit!!.nombre,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                } else {
+                    // VISTA CON OUTFIT (LAZY COLUMN SCROLLABLE)
+                    Column {
+                        Text(
+                            text = outfit!!.nombre,
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(outfit!!.combinacion) { prenda ->
-                        PrendaRow(prenda = prenda)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    mensajeError = null
-                    if (prendas.isEmpty()) {
-                        mensajeError = "No hay prendas disponibles. Agrega algunas prendas primero."
-                        return@Button
-                    }
-
-                    // Intentar generar outfit aleatorio
-                    val nuevoOutfit = outfitRepository.generarOutfitAleatorio(prendas)
-
-                    if (nuevoOutfit != null) {
-                        ropaViewModel.agregarOutfit(nuevoOutfit)
-                        outfit = nuevoOutfit
-                    } else {
-                        // Fallback: intentar con sugerencias
-                        val sugerencias = outfitRepository.generarSugerenciasOutfits(prendas)
-                        if (sugerencias.isNotEmpty()) {
-                            val fallbackOutfit = sugerencias.first()
-                            ropaViewModel.agregarOutfit(fallbackOutfit)
-                            outfit = fallbackOutfit
-                        } else {
-                            mensajeError = "No se pudo generar un outfit. Asegúrate de tener prendas de diferentes categorías."
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            items(outfit!!.combinacion) { prenda ->
+                                PrendaRow(prenda = prenda)
+                            }
                         }
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = prendas.isNotEmpty()
-            ) {
-                Text("Generar Outfit Aleatorio")
-            }
-
-            // Botón para cargar datos de ejemplo
-            if (prendas.isEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        ropaViewModel.cargarPrendasDeEjemplo()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Text("Cargar Prendas de Ejemplo")
                 }
             }
 
-            // Botón adicional para limpiar
-            if (outfit != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+            // 3. BOTONES (Footer Fijo)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
                 Button(
                     onClick = {
-                        outfit = null
                         mensajeError = null
+                        if (prendas.isEmpty()) {
+                            mensajeError = "No hay prendas disponibles. Agrega algunas prendas primero."
+                            return@Button
+                        }
+
+                        // Generar outfit
+                        val nuevoOutfit = outfitRepository.generarOutfitAleatorio(prendas)
+
+                        if (nuevoOutfit != null) {
+                            ropaViewModel.agregarOutfit(nuevoOutfit)
+                            outfit = nuevoOutfit
+                        } else {
+                            // Fallback
+                            val sugerencias = outfitRepository.generarSugerenciasOutfits(prendas)
+                            if (sugerencias.isNotEmpty()) {
+                                val fallbackOutfit = sugerencias.first()
+                                ropaViewModel.agregarOutfit(fallbackOutfit)
+                                outfit = fallbackOutfit
+                            } else {
+                                mensajeError = "No se pudo generar un outfit. Intenta agregar más ropa variada."
+                            }
+                        }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = prendas.isNotEmpty()
                 ) {
-                    Text("Limpiar Outfit")
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Generar Aleatorio")
+                }
+
+                // Botones auxiliares
+                if (prendas.isEmpty()) {
+                    OutlinedButton(
+                        onClick = { ropaViewModel.cargarPrendasDeEjemplo() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cargar Prendas de Ejemplo")
+                    }
+                }
+
+                if (outfit != null) {
+                    TextButton(
+                        onClick = {
+                            outfit = null
+                            mensajeError = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Limpiar pantalla", color = MaterialTheme.colorScheme.secondary)
+                    }
                 }
             }
         }
@@ -178,59 +190,59 @@ fun OutfitSugeridoScreen(
 
 @Composable
 fun PrendaRow(prenda: Prenda) {
+    // Intentamos parsear el color para mostrar la bolita
+    val colorParse = try {
+        Color(android.graphics.Color.parseColor(prenda.color))
+    } catch (_: Exception) {
+        Color.Transparent
+    }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
-            // Placeholder para imagen - usando un Box con color basado en el color de la prenda
+            // IMAGEN
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .background(
-                        color = when (prenda.color.lowercase()) {
-                            "rojo" -> Color.Red
-                            "azul" -> Color.Blue
-                            "verde" -> Color.Green
-                            "negro" -> Color.Black
-                            "blanco" -> Color.White
-                            "amarillo" -> Color.Yellow
-                            "gris" -> Color.Gray
-                            "rosa" -> Color.Magenta
-                            "morado" -> Color(0xFF6A0DAD)
-                            "naranja" -> Color(0xFFFFA500)
-                            else -> Color.Gray
-                        }
-                    ),
-                contentAlignment = Alignment.Center
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Text(
-                    text = prenda.categoria.take(3).uppercase(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+                PrendaImagen(
+                    imagenPath = prenda.imagenUri,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column {
+            // DATOS
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = prenda.titulo,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
                 Text(
-                    text = "Categoría: ${prenda.categoria}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = prenda.categoria,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = "Color: ${prenda.color}",
-                    style = MaterialTheme.typography.bodyMedium
+            }
+
+            // INDICADOR DE COLOR (Bolita)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(colorParse, CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape)
                 )
             }
         }

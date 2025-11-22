@@ -76,7 +76,7 @@ fun OutfitsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(outfitsUsuario) { outfit ->
-                        OutfitCard(outfit)
+                        OutfitSuggestedCard(outfit)
                     }
                 }
             }
@@ -105,7 +105,7 @@ fun EmptyOutfitsView(navController: NavController) {
 }
 
 @Composable
-fun OutfitCard(outfit: OutfitSugerido) {
+fun OutfitSuggestedCard(outfit: OutfitSugerido) {
     val context = LocalContext.current
 
     Card(
