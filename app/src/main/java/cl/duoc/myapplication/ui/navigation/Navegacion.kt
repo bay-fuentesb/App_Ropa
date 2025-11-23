@@ -17,8 +17,7 @@ import cl.duoc.myapplication.ui.screens.CrearOutfitScreen
 import cl.duoc.myapplication.ui.screens.MisPrendas
 import cl.duoc.myapplication.ui.screens.OutfitSugeridoScreen
 import cl.duoc.myapplication.ui.screens.OutfitsScreen
-import cl.duoc.myapplication.ui.screens.Recomendaciones
-import cl.duoc.myapplication.ui.screens.TestApiScreen
+// import cl.duoc.myapplication.ui.screens.TestApiScreen //Solo para pruebas de API
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 import cl.duoc.myapplication.viewmodel.UsuarioFormViewModel
 
@@ -54,13 +53,13 @@ fun Navegacion() {
             )
         }
 
-        composable("testApi") {
+        /*composable("testApi") {
             TestApiScreen(
                 ropaViewModel= ropaViewModel,
                 onVolver = {
                     navController.popBackStack()
                 })
-        }
+        }*/
 
         composable("inicio") {
             // Proteger esta pantalla - verificar sesión
@@ -76,19 +75,6 @@ fun Navegacion() {
                 navController = navController,
                 ropaViewModel = ropaViewModel
             )
-        }
-
-        composable("recomendaciones") {
-            // Proteger esta pantalla
-            LaunchedEffect(Unit) {
-                if (!sessionManager.isLoggedIn()) {
-                    navController.navigate("login") {
-                        popUpTo("recomendaciones") { inclusive = true }
-                    }
-                }
-            }
-
-            Recomendaciones(navController)
         }
 
         composable("agregar") {

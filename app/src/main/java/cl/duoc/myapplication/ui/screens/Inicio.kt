@@ -125,14 +125,15 @@ fun Inicio(
                 )
             }
 
-            item{
+            //Solo para pruebas de API Nube
+            /*item{
                 Button(
                     onClick = { navController?.navigate("testApi")},
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                 ){
                     Text("Test API Nube")
                 }
-            }
+            }*/
 
 
         }

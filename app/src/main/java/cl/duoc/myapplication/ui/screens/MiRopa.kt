@@ -1,8 +1,5 @@
 package cl.duoc.myapplication.ui.screens
 
-import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,146 +9,126 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.core.net.toUri
-import cl.duoc.myapplication.viewmodel.RopaViewModel
+import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.ui.components.PrendaImagen
+import cl.duoc.myapplication.viewmodel.RopaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisPrendas(
     ropaViewModel: RopaViewModel = viewModel(),
     navController: androidx.navigation.NavController
 ) {
     val prendas = ropaViewModel.prendas
-    val context = LocalContext.current
+    val isLoading = ropaViewModel.isLoading
+    val errorMessage = ropaViewModel.errorMessage
 
-    var mostrarFiltro by remember { mutableStateOf(false) }
-    var categoriaFiltro by remember { mutableStateOf("Todas") }
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    val categorias = listOf(
-        "Todas", "Polera", "Poleron", "Zapatilla", "Calcetines",
-        "Accesorios", "Jockeys", "Chaqueta", "Parka", "Pantalones"
-    )
-
-    val prendasFiltradas = if (categoriaFiltro == "Todas") prendas
-    else prendas.filter { it.categoria == categoriaFiltro }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-
-        // --------------------- TOP BAR ------------------------
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.navigate("inicio") }) {
-                Icon(Icons.Filled.Home, contentDescription = "Inicio")
-            }
-
-            Text(
-                text = "Mi Ropa",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-
-            IconButton(onClick = { navController.navigate("outfits") }) {
-                Icon(Icons.Filled.Create, contentDescription = "Outfits")
-            }
-
-            IconButton(onClick = { navController.navigate("agregar") }) {
-                Icon(Icons.Filled.Add, contentDescription = "Agregar")
-            }
-
-            IconButton(onClick = { mostrarFiltro = !mostrarFiltro }) {
-                Icon(Icons.Filled.List, contentDescription = "Filtrar")
-            }
+    // Efecto para mostrar errores
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            snackbarHostState.showSnackbar(errorMessage)
+            ropaViewModel.limpiarError()
         }
+    }
 
-        // --------------------- FILTRO ------------------------
-        if (mostrarFiltro) {
-            var expanded by remember { mutableStateOf(false) }
-
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                OutlinedTextField(
-                    value = categoriaFiltro,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Filtrar por categoría") },
-                    trailingIcon = {
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(Icons.Filled.List, contentDescription = null)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            // USAMOS CenterAlignedTopAppBar PARA CENTRADO AUTOMÁTICO Y ELEGANTE
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Mi Armario",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigate("inicio") }) {
+                        Icon(Icons.Filled.Home, contentDescription = "Inicio")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { ropaViewModel.cargarPrendasDesdeApi() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Recargar")
+                    }
+                    IconButton(onClick = { navController.navigate("outfits") }) {
+                        Icon(Icons.Filled.Create, contentDescription = "Outfits")
+                    }
+                    IconButton(onClick = { navController.navigate("agregar") }) {
+                        Icon(Icons.Filled.Add, contentDescription = "Agregar")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
+            )
+        }
+    ) { paddingValues ->
 
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // --- LISTA UNIFICADA (Para Scroll Fluido) ---
+            if (prendas.isEmpty() && !isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Tu armario está vacío",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { navController.navigate("agregar") }) {
+                            Text("Agregar primera prenda")
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp), // Margen general
+                    verticalArrangement = Arrangement.spacedBy(16.dp) // Espacio entre tarjetas
                 ) {
-                    categorias.forEach {
-                        DropdownMenuItem(
-                            text = { Text(it) },
-                            onClick = {
-                                categoriaFiltro = it
-                                expanded = false
-                                mostrarFiltro = false
-                            }
+                    // Si tienes filtros, ponlos aquí como un item {}
+                    // item { FiltrosSection(...) }
+
+                    items(prendas) { prenda ->
+                        PrendaCard(
+                            prenda = prenda,
+                            onDeleteClick = { ropaViewModel.eliminarPrenda(prenda) }
                         )
                     }
                 }
             }
-        }
 
-        // --------------------- LISTA DE PRENDAS ------------------------
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            items(prendasFiltradas) { prenda ->
-                PrendaCard(prenda = prenda, context = context)
-            }
-
-            item {
-                Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { navController.navigate("outfitSugerido") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text("Generar Outfit Aleatorio")
-                    }
-
-                    // Espacio entre botones más pequeño
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = { navController.navigate("crearOutfit") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text("Crear Outfit Personalizado")
-                    }
+            // --- OVERLAY DE CARGA ---
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -159,70 +136,94 @@ fun MisPrendas(
 }
 
 @Composable
-fun PrendaCard(prenda: cl.duoc.myapplication.model.Prenda, context: android.content.Context) {
-    val uri = try { prenda.imagenUri.toUri() } catch (_: Exception) { null }
-
-    val bitmap = remember(uri) {
-        try {
-            if (uri != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val src = ImageDecoder.createSource(context.contentResolver, uri)
-                    ImageDecoder.decodeBitmap(src)
-                } else {
-                    context.contentResolver.openInputStream(uri)?.use {
-                        BitmapFactory.decodeStream(it)
-                    }
-                }
-            } else null
-        } catch (_: Exception) { null }
-    }
-
+fun PrendaCard(
+    prenda: Prenda,
+    onDeleteClick: () -> Unit
+) {
     val colorCompose = try {
         Color(android.graphics.Color.parseColor(prenda.color))
     } catch (_: Exception) {
-        Color.DarkGray
+        Color.LightGray
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(10.dp)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp), // Bordes más redondeados
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-
-           PrendaImagen(
-                imagenPath = prenda.imagenUri,
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            // IMAGEN CON BORDES REDONDEADOS
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(220.dp) // Un poco más alto para lucir la prenda
+                    .clip(RoundedCornerShape(12.dp)) // Recorta la imagen
+                    .background(Color.White) // Fondo neutro para la imagen
+            ) {
+                PrendaImagen(
+                    imagenPath = prenda.imagenUri,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-           )
+                // Etiqueta flotante de categoría (Opcional, estilo visual)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = prenda.categoria,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // INFO
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Título: ${prenda.titulo}", fontWeight = FontWeight.Bold)
-                    Text("Categoría: ${prenda.categoria}")
+                    Text(
+                        text = prenda.titulo,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    // Si quieres mostrar la marca u otro detalle
+                    // Text(text = "Marca", style = MaterialTheme.typography.bodySmall)
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Círculo de color con borde para contraste
                     Box(
                         modifier = Modifier
-                            .size(30.dp)
+                            .size(28.dp)
                             .background(colorCompose, CircleShape)
+                            .padding(2.dp) // Simula un borde interno si el color es igual al fondo
                     )
-                    Text(
-                        prenda.color,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }
