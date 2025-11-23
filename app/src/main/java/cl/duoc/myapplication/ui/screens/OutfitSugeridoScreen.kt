@@ -35,6 +35,8 @@ fun OutfitSugeridoScreen(
     val prendas = ropaViewModel.prendas
     val outfitRepository = remember { OutfitRepository() }
 
+    // Inicializamos con null para que no muestre nada al principio si prefieres,
+    // o con el primero de la lista si ya existe uno.
     var outfit by remember { mutableStateOf(ropaViewModel.outfits.firstOrNull()) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
 
@@ -90,7 +92,7 @@ fun OutfitSugeridoScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Aún no has generado un outfit",
+                            text = "Presiona el botón para generar un look",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -162,7 +164,7 @@ fun OutfitSugeridoScreen(
                     Text("Generar Aleatorio")
                 }
 
-                // Botones auxiliares
+                // Botones auxiliares (Solo Cargar ejemplos si está vacío)
                 if (prendas.isEmpty()) {
                     OutlinedButton(
                         onClick = { ropaViewModel.cargarPrendasDeEjemplo() },
@@ -172,17 +174,7 @@ fun OutfitSugeridoScreen(
                     }
                 }
 
-                if (outfit != null) {
-                    TextButton(
-                        onClick = {
-                            outfit = null
-                            mensajeError = null
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Limpiar pantalla", color = MaterialTheme.colorScheme.secondary)
-                    }
-                }
+                // 🔥 BOTÓN "LIMPIAR PANTALLA" ELIMINADO AQUÍ
             }
         }
     }

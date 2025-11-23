@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,13 +23,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.R
 import cl.duoc.myapplication.model.OutfitSugerido
 import cl.duoc.myapplication.model.Prenda
-import cl.duoc.myapplication.ui.components.PrendaImagen // Asegúrate de importar tu componente
+import cl.duoc.myapplication.ui.components.PrendaImagen
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,15 +53,18 @@ fun OutfitsScreen(
                 )
             )
         },
-        // Botón Flotante para crear nuevo outfit
+        // 🔥 LÓGICA CORREGIDA: Solo mostramos el FAB si la lista NO está vacía.
+        // Si está vacía, usaremos los botones centrales para evitar redundancia.
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { navController.navigate("crearOutfit") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                icon = { Icon(Icons.Filled.Add, "Crear") },
-                text = { Text("Nuevo Outfit") }
-            )
+            if (outfitsUsuario.isNotEmpty()) {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("crearOutfit") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    icon = { Icon(Icons.Filled.Add, "Crear") },
+                    text = { Text("Nuevo Outfit") }
+                )
+            }
         }
     ) { innerPadding ->
 
@@ -80,9 +82,27 @@ fun OutfitsScreen(
                 contentPadding = PaddingValues(bottom = 80.dp), // Espacio para el FAB
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Título o espacio inicial
+                // Espaciador inicial
                 item { Spacer(modifier = Modifier.height(8.dp)) }
 
+                // Botón Generar Aleatorio (Visible cuando hay lista)
+                item {
+                    Button(
+                        onClick = { navController.navigate("outfitSugerido") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generar uno aleatorio")
+                    }
+                }
+
+                // Lista de outfits existentes
                 items(outfitsUsuario) { outfit ->
                     OutfitSuggestedCard(
                         outfit = outfit,
@@ -106,32 +126,58 @@ fun EmptyOutfitsView(modifier: Modifier = Modifier, navController: NavController
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            painter = painterResource(R.drawable.yeezy), // O un icono de guardarropa
+            painter = painterResource(R.drawable.yeezy),
             contentDescription = null,
             modifier = Modifier.size(100.dp),
             tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
         )
+
         Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = "Tu colección está vacía",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Crea combinaciones únicas con tu ropa.",
+            text = "Empieza a combinar tu estilo ahora.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = { navController.navigate("crearOutfit") }) {
-            Text("Crear mi primer Outfit")
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // 🔥 BOTÓN 1: Crear Outfit (Acción Principal)
+        Button(
+            onClick = { navController.navigate("crearOutfit") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Crear Outfit")
         }
-        TextButton(onClick = { navController.navigate("outfitSugerido") }) {
-            Text("Generar uno aleatorio")
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 🔥 BOTÓN 2: Generar Aleatorio (Acción Secundaria)
+        OutlinedButton(
+            onClick = { navController.navigate("outfitSugerido") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Filled.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Generar Aleatorio")
         }
     }
 }
 
+// ... (El resto de componentes OutfitSuggestedCard y OutfitPrendaItem se mantienen igual) ...
 @Composable
 fun OutfitSuggestedCard(
     outfit: OutfitSugerido,
@@ -192,7 +238,6 @@ fun OutfitSuggestedCard(
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     ) {
-                        // AQUI USAMOS TU COMPONENTE MEJORADO
                         PrendaImagen(
                             imagenPath = prenda.imagenUri,
                             modifier = Modifier.fillMaxSize()
@@ -215,7 +260,7 @@ fun OutfitSuggestedCard(
                         text = "+ ${outfit.combinacion.size - 3} prendas más...",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(start = 28.dp) // Alinear con el texto del item
+                        modifier = Modifier.padding(start = 28.dp)
                     )
                 }
             }
@@ -235,16 +280,13 @@ fun OutfitPrendaItem(prenda: Prenda) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Bolita de color
         Box(
             modifier = Modifier
                 .size(12.dp)
                 .background(colorCircle, CircleShape)
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
         )
-
         Spacer(modifier = Modifier.width(12.dp))
-
         Text(
             text = prenda.titulo,
             style = MaterialTheme.typography.bodyMedium,
@@ -252,7 +294,6 @@ fun OutfitPrendaItem(prenda: Prenda) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-
         Text(
             text = prenda.categoria,
             style = MaterialTheme.typography.labelSmall,
