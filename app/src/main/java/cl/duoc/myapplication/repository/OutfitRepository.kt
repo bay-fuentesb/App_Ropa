@@ -12,48 +12,30 @@ class OutfitRepository {
         }
 
         println("Generando outfit con ${prendasUsuario.size} prendas")
-        println("Categorías disponibles: ${prendasUsuario.map { it.categoria }.distinct()}")
-
         val prendasPorCategoria = prendasUsuario.groupBy { it.categoria }
         val seleccion = mutableListOf<Prenda>()
 
-        // Buscar superiores
+        // Listas de palabras clave
         val categoriasSuperiores = listOf("Polera", "Poleron", "Chaqueta", "Parka", "Camisa", "Remera", "Blusa", "Sweater")
-        val superiores = categoriasSuperiores.flatMap { prendasPorCategoria[it] ?: emptyList() }
-
-        // Buscar inferiores
         val categoriasInferiores = listOf("Pantalones", "Pantalón", "Jeans", "Short", "Falda", "Vestido")
-        val inferiores = categoriasInferiores.flatMap { prendasPorCategoria[it] ?: emptyList() }
-
-        // Buscar calzados
         val categoriasCalzados = listOf("Zapatilla", "Zapatillas", "Zapato", "Zapatos", "Calzado", "Tenis")
+
+        // Filtrado
+        val superiores = categoriasSuperiores.flatMap { prendasPorCategoria[it] ?: emptyList() }
+        val inferiores = categoriasInferiores.flatMap { prendasPorCategoria[it] ?: emptyList() }
         val calzados = categoriasCalzados.flatMap { prendasPorCategoria[it] ?: emptyList() }
 
-        println("Superiores encontrados: ${superiores.size}")
-        println("Inferiores encontrados: ${inferiores.size}")
-        println("Calzados encontrados: ${calzados.size}")
+        // Selección Aleatoria (Intento de balanceo)
+        if (superiores.isNotEmpty()) superiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
+        if (inferiores.isNotEmpty()) inferiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
+        if (calzados.isNotEmpty()) calzados.shuffled().firstOrNull()?.let { seleccion.add(it) }
 
-        // Intentar crear un outfit balanceado
-        if (superiores.isNotEmpty()) {
-            superiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
-        }
-
-        if (inferiores.isNotEmpty()) {
-            inferiores.shuffled().firstOrNull()?.let { seleccion.add(it) }
-        }
-
-        if (calzados.isNotEmpty()) {
-            calzados.shuffled().firstOrNull()?.let { seleccion.add(it) }
-        }
-
-        // Si no tenemos suficientes prendas de categorías específicas, completar con cualquier prenda
+        // Fallback: Rellenar si falta ropa para llegar a 2 prendas mínimo
         if (seleccion.size < 2) {
             val otrasPrendas = prendasUsuario.filter { it !in seleccion }.shuffled()
             val necesitamos = 2 - seleccion.size
             seleccion.addAll(otrasPrendas.take(necesitamos))
         }
-
-        println("Outfit generado con ${seleccion.size} prendas")
 
         return if (seleccion.isNotEmpty()) {
             OutfitSugerido(
@@ -65,7 +47,11 @@ class OutfitRepository {
         }
     }
 
-    fun generarSugerenciasOutfits(prendasUsuario: List<Prenda>): List<OutfitSugerido> {
+    /**
+     * Genera sugerencias.
+     * @param cantidad (Opcional) Número máximo de sugerencias. Por defecto es 3.
+     */
+    fun generarSugerenciasOutfits(prendasUsuario: List<Prenda>, cantidad: Int = 3): List<OutfitSugerido> {
         if (prendasUsuario.size < 2) {
             println("No hay suficientes prendas para generar sugerencias")
             return emptyList()
@@ -74,56 +60,57 @@ class OutfitRepository {
         val sugerencias = mutableListOf<OutfitSugerido>()
         val prendasPorCategoria = prendasUsuario.groupBy { it.categoria }
 
-        // Categorías flexibles
         val superiores = listOf("Polera", "Poleron", "Chaqueta", "Parka", "Camisa", "Remera", "Sweater")
             .flatMap { prendasPorCategoria[it] ?: emptyList() }
-
         val inferiores = listOf("Pantalones", "Pantalón", "Jeans", "Short", "Falda")
             .flatMap { prendasPorCategoria[it] ?: emptyList() }
-
         val calzados = listOf("Zapatilla", "Zapatillas", "Zapato", "Tenis")
             .flatMap { prendasPorCategoria[it] ?: emptyList() }
 
-        val maxSuggestions = 3
+        // Usamos el parámetro 'cantidad' aquí
+        val maxSuggestions = cantidad
 
-        // Outfit completo: superior + inferior + calzado
+        // 1. Intentar Outfits completos (Top + Bottom + Shoes)
         if (superiores.isNotEmpty() && inferiores.isNotEmpty() && calzados.isNotEmpty()) {
             repeat(minOf(maxSuggestions, superiores.size, inferiores.size, calzados.size)) { index ->
                 val top = superiores.shuffled().first()
                 val bottom = inferiores.shuffled().first()
                 val shoes = calzados.shuffled().first()
 
+                // Evitar duplicados exactos si es posible (simple check)
+                val nuevaComb = listOf(top, bottom, shoes)
+                // Solo agregamos si no existe una sugerencia idéntica (opcional, pero recomendado)
                 sugerencias.add(
                     OutfitSugerido(
-                        nombre = "Outfit Completo ${index + 1}",
-                        combinacion = listOf(top, bottom, shoes)
+                        nombre = "Outfit Completo ${sugerencias.size + 1}",
+                        combinacion = nuevaComb
                     )
                 )
             }
         }
 
-        // Solo superior + inferior
+        // 2. Si faltan sugerencias, intentar Top + Bottom
         if (sugerencias.size < maxSuggestions && superiores.isNotEmpty() && inferiores.isNotEmpty()) {
             val combinacionesNecesarias = maxSuggestions - sugerencias.size
-            repeat(minOf(combinacionesNecesarias, superiores.size, inferiores.size)) { index ->
+            repeat(minOf(combinacionesNecesarias, superiores.size, inferiores.size)) {
                 val top = superiores.shuffled().first()
                 val bottom = inferiores.shuffled().first()
 
                 sugerencias.add(
                     OutfitSugerido(
-                        nombre = "Combinación Casual ${index + 1}",
+                        nombre = "Combinación Casual ${sugerencias.size + 1}",
                         combinacion = listOf(top, bottom)
                     )
                 )
             }
         }
 
-        // Combinaciones aleatorias simples como fallback
+        // 3. Fallback: Combinaciones aleatorias simples
         if (sugerencias.isEmpty()) {
             val shuffled = prendasUsuario.shuffled()
-            val cantidad = minOf(maxSuggestions, prendasUsuario.size / 2)
+            val cantidadFallback = minOf(maxSuggestions, prendasUsuario.size / 2)
 
-            repeat(cantidad) { index ->
+            repeat(cantidadFallback) { index ->
                 val pair = shuffled.chunked(2).getOrNull(index)
                 pair?.let {
                     sugerencias.add(
@@ -136,7 +123,7 @@ class OutfitRepository {
             }
         }
 
-        println("Generadas ${sugerencias.size} sugerencias")
+        // Aseguramos no devolver más de lo pedido
         return sugerencias.take(maxSuggestions)
     }
 }
