@@ -26,7 +26,10 @@ import java.io.File
 
 // --- AGREGA ESTA NUEVA FUNCIÓN AL FINAL DE TU ARCHIVO MiRopa.kt ---
 @Composable
-fun PrendaImagen(imagenPath: String, modifier: Modifier = Modifier) {
+fun PrendaImagen(
+    imagenPath: String,
+    modifier: Modifier = Modifier,
+    contentScale : ContentScale = ContentScale.Crop) {
     val context = LocalContext.current
     var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 

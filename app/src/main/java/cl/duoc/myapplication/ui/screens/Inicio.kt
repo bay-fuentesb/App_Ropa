@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Star
@@ -22,13 +23,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.R
 import cl.duoc.myapplication.model.OutfitSugerido
 import cl.duoc.myapplication.ui.components.EmptyStateCard
-import cl.duoc.myapplication.ui.components.PrendaImagen // <-- Importamos el componente inteligente
+import cl.duoc.myapplication.ui.components.PrendaImagen
 import cl.duoc.myapplication.ui.components.SessionManager
 import cl.duoc.myapplication.ui.components.StatCard
 import cl.duoc.myapplication.viewmodel.RopaViewModel
@@ -53,10 +55,11 @@ fun Inicio(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 16.dp), // Padding general lateral
+            contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp) // Más espacio entre secciones
         ) {
-            // 1. HEADER
+            // 1. HEADER (Saludo)
             item {
                 HeaderSaludo(
                     nombreUsuario = usuarioLogueado.value,
@@ -69,78 +72,108 @@ fun Inicio(
                 )
             }
 
-            // 2. ESTADÍSTICAS (Usando componente compartido)
+            // 2. ESTADÍSTICAS
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        title = "Prendas",
-                        count = ropaViewModel.prendas.size.toString(),
-                        icon = R.drawable.balenciaga,
-                        modifier = Modifier.weight(1f)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 🔥 Nuevo Título y Leyenda
+                    SectionHeader(
+                        title = "Resumen de Estilo",
+                        description = "Un vistazo rápido a la cantidad de prendas y combinaciones que has creado."
                     )
-                    StatCard(
-                        title = "Outfits",
-                        count = ropaViewModel.outfits.size.toString(),
-                        icon = R.drawable.yeezy,
-                        modifier = Modifier.weight(1f)
-                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatCard(
+                            title = "Prendas",
+                            count = ropaViewModel.prendas.size.toString(),
+                            icon = R.drawable.balenciaga, // Asegúrate que este recurso exista
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            title = "Outfits",
+                            count = ropaViewModel.outfits.size.toString(),
+                            icon = R.drawable.yeezy, // Asegúrate que este recurso exista
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
             // 3. OUTFITS DESTACADOS
             item {
-                SectionTitle(title = "Tus Outfits Destacados")
-                val userOutfits = ropaViewModel.outfits
-
-                if (userOutfits.isNotEmpty()) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(userOutfits) { outfit ->
-                            OutfitCard(outfit = outfit)
-                        }
-                        item {
-                            VerTodosCard { navController?.navigate("outfits") }
-                        }
-                    }
-                } else {
-                    EmptyStateCard(
-                        text = "Aún no tienes outfits creados",
-                        buttonText = "Crear Outfit",
-                        onClick = { navController?.navigate("outfits") }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 🔥 Nuevo Título y Leyenda
+                    SectionHeader(
+                        title = "Tus Outfits Destacados",
+                        description = "Revisa las combinaciones favoritas que has guardado para inspirarte hoy."
                     )
+
+                    val userOutfits = ropaViewModel.outfits
+
+                    if (userOutfits.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp) // Pequeño padding interno
+                        ) {
+                            items(userOutfits) { outfit ->
+                                OutfitCard(outfit = outfit)
+                            }
+                            item {
+                                VerTodosCard { navController?.navigate("outfits") }
+                            }
+                        }
+                    } else {
+                        EmptyStateCard(
+                            text = "Aún no tienes outfits creados",
+                            buttonText = "Crear mi primer Outfit",
+                            onClick = { navController?.navigate("outfits") }
+                        )
+                    }
                 }
             }
 
             // 4. MI ARMARIO
             item {
-                SectionTitle(title = "Gestión de Armario")
-                CardArmario(
-                    onAgregar = { navController?.navigate("agregar") },
-                    onVerTodo = { navController?.navigate("miRopa") }
-                )
-            }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 🔥 Nuevo Título y Leyenda
+                    SectionHeader(
+                        title = "Gestión de Armario",
+                        description = "Sube tus nuevas compras o revisa todo tu inventario de ropa disponible."
+                    )
 
-            //Solo para pruebas de API Nube
-            /*item{
-                Button(
-                    onClick = { navController?.navigate("testApi")},
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                ){
-                    Text("Test API Nube")
+                    CardArmario(
+                        onAgregar = { navController?.navigate("agregar") },
+                        onVerTodo = { navController?.navigate("miRopa") }
+                    )
                 }
-            }*/
-
-
+            }
         }
     }
 }
 
-// --- COMPONENTES PRIVADOS (Solo usados en Inicio) ---
+// --- COMPONENTES AUXILIARES ---
+
+// 🔥 COMPONENTE NUEVO: Título con descripción
+@Composable
+private fun SectionHeader(title: String, description: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, // Color gris suave
+            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+        )
+    }
+}
 
 @Composable
 private fun HeaderSaludo(nombreUsuario: String?, onLogout: () -> Unit) {
@@ -152,24 +185,40 @@ private fun HeaderSaludo(nombreUsuario: String?, onLogout: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Face, "Avatar", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
+                Icon(
+                    Icons.Default.Face,
+                    contentDescription = "Avatar",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(28.dp)
+                )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column {
-                Text("Hola, de nuevo! 👋", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(nombreUsuario ?: "Invitado", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "¡Hola de nuevo!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = nombreUsuario ?: "Usuario",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
         IconButton(
             onClick = onLogout,
-            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.error)
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                contentColor = MaterialTheme.colorScheme.error
+            )
         ) {
-            Icon(Icons.Default.ExitToApp, "Salir")
+            Icon(Icons.Default.ExitToApp, "Cerrar sesión")
         }
     }
 }
@@ -177,27 +226,52 @@ private fun HeaderSaludo(nombreUsuario: String?, onLogout: () -> Unit) {
 @Composable
 private fun OutfitCard(outfit: OutfitSugerido) {
     Card(
-        modifier = Modifier.width(160.dp).height(200.dp),
+        modifier = Modifier
+            .width(160.dp)
+            .height(220.dp), // Un poco más alto para mejor proporción
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)) {
-                val prendasMuestra = outfit.combinacion.take(2)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                val prendasMuestra = outfit.combinacion.take(4) // Intenta mostrar hasta 4
                 if (prendasMuestra.isNotEmpty()) {
+                    // Grid simple de 2x2 o fila dependiendo de la cantidad
                     Row(modifier = Modifier.fillMaxSize()) {
-                        prendasMuestra.forEach { prenda ->
+                        prendasMuestra.take(2).forEach { prenda ->
                             Box(modifier = Modifier.weight(1f).fillMaxHeight().padding(1.dp)) {
-                                // AQUÍ USAMOS EL COMPONENTE QUE ARREGLA LA ROTACIÓN 👇
-                                PrendaImagen(imagenPath = prenda.imagenUri, modifier = Modifier.fillMaxSize())
+                                PrendaImagen(
+                                    imagenPath = prenda.imagenUri,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             }
                         }
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(painterResource(R.drawable.balenciaga), null, tint = Color.Gray)
                     }
                 }
             }
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(outfit.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${outfit.combinacion.size} prendas", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = outfit.nombre,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${outfit.combinacion.size} prendas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
@@ -208,41 +282,95 @@ private fun CardArmario(onAgregar: () -> Unit, onVerTodo: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("¿Nueva compra?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Agrega tus prendas nuevas.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = onAgregar, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
-                    Text("Agregar Prenda")
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Image(painter = painterResource(id = R.drawable.balenciaga), contentDescription = null, modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
-        }
-        Divider(modifier = Modifier.padding(horizontal = 16.dp))
-        TextButton(onClick = onVerTodo, modifier = Modifier.fillMaxWidth().padding(8.dp)) { Text("Ver todo mi armario") }
-    }
-}
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "¿Nueva compra?",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Agrega esa prenda a tu colección.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-@Composable
-private fun SectionTitle(title: String) {
-    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp, start = 4.dp))
+                    // Botón pequeño para agregar rápido
+                    Button(
+                        onClick = onAgregar,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Agregar")
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Image(
+                    painter = painterResource(id = R.drawable.balenciaga),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+
+            OutlinedButton(
+                onClick = onVerTodo,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Ver todo mi armario")
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
 }
 
 @Composable
 private fun VerTodosCard(onClick: () -> Unit) {
     Card(
-        modifier = Modifier.width(100.dp).height(200.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        onClick = onClick
+        modifier = Modifier
+            .width(100.dp)
+            .height(220.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Star, contentDescription = null)
-            Text("Ver todos", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Ver todos",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }
