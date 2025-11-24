@@ -44,7 +44,7 @@ fun MisPrendas(
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     var colorSeleccionado by remember { mutableStateOf<String?>(null) }
 
-    // 🔥 ESTADO PARA CONTROLAR EL DIÁLOGO DE BORRADO
+    // Estado para alerta de borrado
     var prendaAEliminar by remember { mutableStateOf<Prenda?>(null) }
 
     val categoriasDisponibles = listOf(
@@ -67,7 +67,7 @@ fun MisPrendas(
         }
     }
 
-    // 🔥 ALERTA DE CONFIRMACIÓN
+    // ALERTA DE CONFIRMACIÓN
     if (prendaAEliminar != null) {
         AlertDialog(
             onDismissRequest = { prendaAEliminar = null },
@@ -76,7 +76,6 @@ fun MisPrendas(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Aquí ocurre el borrado real
                         ropaViewModel.eliminarPrenda(prendaAEliminar!!)
                         prendaAEliminar = null
                     },
@@ -141,7 +140,14 @@ fun MisPrendas(
                     catSeleccionada = categoriaSeleccionada,
                     colSeleccionado = colorSeleccionado,
                     onCatSelected = { nuevaCat ->
-                        categoriaSeleccionada = if (categoriaSeleccionada == nuevaCat) null else nuevaCat
+                        // 🔥 LÓGICA DE SELECCIÓN DE CATEGORÍA
+                        if (nuevaCat == null) {
+                            // Si eligió "Todos", limpiamos el filtro
+                            categoriaSeleccionada = null
+                        } else {
+                            // Si eligió una específica, hacemos toggle (si ya estaba, la quitamos)
+                            categoriaSeleccionada = if (categoriaSeleccionada == nuevaCat) null else nuevaCat
+                        }
                     },
                     onColorSelected = { nuevoColor ->
                         colorSeleccionado = if (colorSeleccionado == nuevoColor) null else nuevoColor
@@ -187,7 +193,6 @@ fun MisPrendas(
                             items(prendasFiltradas) { prenda ->
                                 PrendaCard(
                                     prenda = prenda,
-                                    // 🔥 CAMBIO CLAVE: En vez de borrar directo, guardamos la prenda en la variable para activar la alerta
                                     onDeleteClick = { prendaAEliminar = prenda }
                                 )
                             }
@@ -199,9 +204,6 @@ fun MisPrendas(
     }
 }
 
-// ... El resto de los componentes (FiltrosSection, EmptyStateMessage, PrendaCard) se mantienen igual ...
-// Asegúrate de copiar y pegar las funciones auxiliares que ya tenías abajo.
-
 // --- COMPONENTES AUXILIARES ---
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -211,7 +213,7 @@ fun FiltrosSection(
     colores: List<String>,
     catSeleccionada: String?,
     colSeleccionado: String?,
-    onCatSelected: (String) -> Unit,
+    onCatSelected: (String?) -> Unit, // 🔥 Acepta String nulo (para "Todos")
     onColorSelected: (String) -> Unit,
     onLimpiarFiltros: () -> Unit
 ) {
@@ -226,8 +228,32 @@ fun FiltrosSection(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Botón limpiar filtros (solo si hay alguno activo)
+            // 🔥 CHIP "TODOS"
+            item {
+                FilterChip(
+                    selected = catSeleccionada == null, // Está seleccionado si no hay filtro activo
+                    onClick = { onCatSelected(null) },
+                    label = { Text("Todos") }
+                )
+            }
+
+            // Lista de Categorías
+            items(categorias) { cat ->
+                FilterChip(
+                    selected = cat == catSeleccionada,
+                    onClick = { onCatSelected(cat) },
+                    label = { Text(cat) },
+                    leadingIcon = if (cat == catSeleccionada) {
+                        { Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null
+                )
+            }
+
+            // Botón "X" para limpiar todo (útil si hay colores seleccionados)
             if (catSeleccionada != null || colSeleccionado != null) {
+                item {
+                    VerticalDivider(modifier = Modifier.height(32.dp)) // Separador visual
+                }
                 item {
                     FilterChip(
                         selected = true,
@@ -239,17 +265,6 @@ fun FiltrosSection(
                         )
                     )
                 }
-            }
-
-            items(categorias) { cat ->
-                FilterChip(
-                    selected = cat == catSeleccionada,
-                    onClick = { onCatSelected(cat) },
-                    label = { Text(cat) },
-                    leadingIcon = if (cat == catSeleccionada) {
-                        { Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null
-                )
             }
         }
 
@@ -275,7 +290,6 @@ fun FiltrosSection(
                         selected = colorHex == colSeleccionado,
                         onClick = { onColorSelected(colorHex) },
                         label = {
-                            // Mostramos el círculo de color dentro del chip
                             Box(
                                 modifier = Modifier
                                     .size(16.dp)
@@ -295,6 +309,8 @@ fun FiltrosSection(
         }
     }
 }
+
+// ... Resto de componentes (EmptyStateMessage, PrendaCard) igual que antes ...
 
 @Composable
 fun EmptyStateMessage(mensaje: String, botonTexto: String, onClick: () -> Unit) {
@@ -385,7 +401,7 @@ fun PrendaCard(
                             .size(28.dp)
                             .background(colorCompose, CircleShape)
                             .padding(2.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape) // Añadí borde para visibilidad
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
