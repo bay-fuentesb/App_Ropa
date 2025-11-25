@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import cl.duoc.myapplication.model.Prenda
-import cl.duoc.myapplication.repository.OutfitRepository
 import cl.duoc.myapplication.ui.components.PrendaImagen
 import cl.duoc.myapplication.viewmodel.RopaViewModel
 
@@ -33,11 +32,9 @@ fun OutfitSugeridoScreen(
     ropaViewModel: RopaViewModel = viewModel()
 ) {
     val prendas = ropaViewModel.prendas
-    val outfitRepository = remember { OutfitRepository() }
 
-    // Inicializamos con null para que no muestre nada al principio si prefieres,
-    // o con el primero de la lista si ya existe uno.
-    var outfit by remember { mutableStateOf(ropaViewModel.outfits.firstOrNull()) }
+    // Observamos el estado del ViewModel
+    val outfit = ropaViewModel.outfitSugerido
     var mensajeError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -81,7 +78,7 @@ fun OutfitSugeridoScreen(
             // 2. CONTENIDO PRINCIPAL (Con Weight para el Scroll)
             Box(
                 modifier = Modifier
-                    .weight(1f) // OCUPA TODO EL ESPACIO DISPONIBLE
+                    .weight(1f)
                     .fillMaxWidth()
             ) {
                 if (outfit == null) {
@@ -138,22 +135,9 @@ fun OutfitSugeridoScreen(
                             return@Button
                         }
 
-                        // Generar outfit
-                        val nuevoOutfit = outfitRepository.generarOutfitAleatorio(prendas)
-
-                        if (nuevoOutfit != null) {
-                            ropaViewModel.agregarOutfit(nuevoOutfit)
-                            outfit = nuevoOutfit
-                        } else {
-                            // Fallback
-                            val sugerencias = outfitRepository.generarSugerenciasOutfits(prendas)
-                            if (sugerencias.isNotEmpty()) {
-                                val fallbackOutfit = sugerencias.first()
-                                ropaViewModel.agregarOutfit(fallbackOutfit)
-                                outfit = fallbackOutfit
-                            } else {
-                                mensajeError = "No se pudo generar un outfit. Intenta agregar más ropa variada."
-                            }
+                        val error = ropaViewModel.generarOutfitSugerido()
+                        if (error != null) {
+                            mensajeError = error
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -164,7 +148,6 @@ fun OutfitSugeridoScreen(
                     Text("Generar Aleatorio")
                 }
 
-                // Botones auxiliares (Solo Cargar ejemplos si está vacío)
                 if (prendas.isEmpty()) {
                     OutlinedButton(
                         onClick = { ropaViewModel.cargarPrendasDeEjemplo() },
@@ -174,7 +157,17 @@ fun OutfitSugeridoScreen(
                     }
                 }
 
-                // 🔥 BOTÓN "LIMPIAR PANTALLA" ELIMINADO AQUÍ
+                if (outfit != null) {
+                    TextButton(
+                        onClick = {
+                            ropaViewModel.limpiarOutfitSugerido()
+                            mensajeError = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Limpiar pantalla", color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
             }
         }
     }
@@ -182,60 +175,26 @@ fun OutfitSugeridoScreen(
 
 @Composable
 fun PrendaRow(prenda: Prenda) {
-    // Intentamos parsear el color para mostrar la bolita
-    val colorParse = try {
-        Color(android.graphics.Color.parseColor(prenda.color))
-    } catch (_: Exception) {
-        Color.Transparent
-    }
+    val colorParse = try { Color(android.graphics.Color.parseColor(prenda.color)) } catch (_: Exception) { Color.Transparent }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(12.dp)
-        ) {
-            // IMAGEN
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(12.dp)) {
             Box(
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                modifier = Modifier.size(70.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                PrendaImagen(
-                    imagenPath = prenda.imagenUri,
-                    modifier = Modifier.fillMaxSize()
-                )
+                PrendaImagen(imagenPath = prenda.imagenUri, modifier = Modifier.fillMaxSize())
             }
-
             Spacer(modifier = Modifier.width(16.dp))
-
-            // DATOS
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = prenda.titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = prenda.categoria,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = prenda.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(text = prenda.categoria, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            // INDICADOR DE COLOR (Bolita)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(colorParse, CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape)
-                )
+                Box(modifier = Modifier.size(24.dp).background(colorParse, CircleShape).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape))
             }
         }
     }

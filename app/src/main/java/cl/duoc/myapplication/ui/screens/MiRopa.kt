@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.ui.components.PrendaImagen
 import cl.duoc.myapplication.viewmodel.RopaViewModel
+import cl.duoc.myapplication.ui.utils.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,29 +36,30 @@ fun MisPrendas(
     ropaViewModel: RopaViewModel = viewModel(),
     navController: androidx.navigation.NavController
 ) {
-    val prendas = ropaViewModel.prendas
+
+    val prendasParaMostrar = ropaViewModel.prendasFiltradas
     val isLoading = ropaViewModel.isLoading
     val errorMessage = ropaViewModel.errorMessage
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Filtros
+    // Estados UI para los chips (solo visual)
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     var colorSeleccionado by remember { mutableStateOf<String?>(null) }
 
     // Estado para alerta de borrado
     var prendaAEliminar by remember { mutableStateOf<Prenda?>(null) }
 
-    val categoriasDisponibles = listOf(
-        "Accesorios", "Calcetines", "Chaqueta", "Jockey",
-        "Parka", "Pantalones", "Polera", "Poleron", "Zapatilla"
-    )
-    val coloresDisponibles = remember(prendas) { prendas.map { it.color }.distinct() }
+    // Lista de categorías desde constantes
+    val categoriasDisponibles = Constants.CATEGORIAS
 
-    val prendasFiltradas = remember(prendas, categoriaSeleccionada, colorSeleccionado) {
-        prendas.filter { prenda ->
-            (categoriaSeleccionada == null || prenda.categoria == categoriaSeleccionada) &&
-                    (colorSeleccionado == null || prenda.color == colorSeleccionado)
-        }
+    // Obtenemos colores dinámicos de las prendas cargadas
+    val coloresDisponibles = remember(ropaViewModel.prendas) {
+        ropaViewModel.prendas.map { it.color }.distinct()
+    }
+
+    // Cada vez que cambian los filtros visuales, el VM actualiza la lista
+    LaunchedEffect(categoriaSeleccionada, colorSeleccionado, ropaViewModel.prendas) {
+        ropaViewModel.filtrarPrendas(categoriaSeleccionada, colorSeleccionado)
     }
 
     LaunchedEffect(errorMessage) {
@@ -67,7 +69,7 @@ fun MisPrendas(
         }
     }
 
-    // ALERTA DE CONFIRMACIÓN
+    // DIÁLOGO DE CONFIRMACIÓN DE BORRADO
     if (prendaAEliminar != null) {
         AlertDialog(
             onDismissRequest = { prendaAEliminar = null },
@@ -133,21 +135,15 @@ fun MisPrendas(
                 .padding(paddingValues)
         ) {
 
-            if (prendas.isNotEmpty()) {
+            // Sección Filtros (Solo visible si hay prendas cargadas)
+            if (ropaViewModel.prendas.isNotEmpty()) {
                 FiltrosSection(
                     categorias = categoriasDisponibles,
                     colores = coloresDisponibles,
                     catSeleccionada = categoriaSeleccionada,
                     colSeleccionado = colorSeleccionado,
                     onCatSelected = { nuevaCat ->
-                        // 🔥 LÓGICA DE SELECCIÓN DE CATEGORÍA
-                        if (nuevaCat == null) {
-                            // Si eligió "Todos", limpiamos el filtro
-                            categoriaSeleccionada = null
-                        } else {
-                            // Si eligió una específica, hacemos toggle (si ya estaba, la quitamos)
-                            categoriaSeleccionada = if (categoriaSeleccionada == nuevaCat) null else nuevaCat
-                        }
+                        categoriaSeleccionada = if (categoriaSeleccionada == nuevaCat) null else nuevaCat
                     },
                     onColorSelected = { nuevoColor ->
                         colorSeleccionado = if (colorSeleccionado == nuevoColor) null else nuevoColor
@@ -167,14 +163,14 @@ fun MisPrendas(
                             CircularProgressIndicator()
                         }
                     }
-                    prendas.isEmpty() -> {
+                    ropaViewModel.prendas.isEmpty() -> {
                         EmptyStateMessage(
                             mensaje = "Tu armario está vacío",
                             botonTexto = "Agregar primera prenda",
                             onClick = { navController.navigate("agregar") }
                         )
                     }
-                    prendasFiltradas.isEmpty() -> {
+                    prendasParaMostrar.isEmpty() -> {
                         EmptyStateMessage(
                             mensaje = "No se encontraron prendas con esos filtros",
                             botonTexto = "Limpiar filtros",
@@ -190,9 +186,10 @@ fun MisPrendas(
                             contentPadding = PaddingValues(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 88.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            items(prendasFiltradas) { prenda ->
+                            items(prendasParaMostrar) { prenda ->
                                 PrendaCard(
                                     prenda = prenda,
+                                    // Guardamos la prenda en la variable para mostrar el diálogo
                                     onDeleteClick = { prendaAEliminar = prenda }
                                 )
                             }
@@ -213,7 +210,7 @@ fun FiltrosSection(
     colores: List<String>,
     catSeleccionada: String?,
     colSeleccionado: String?,
-    onCatSelected: (String?) -> Unit, // 🔥 Acepta String nulo (para "Todos")
+    onCatSelected: (String?) -> Unit,
     onColorSelected: (String) -> Unit,
     onLimpiarFiltros: () -> Unit
 ) {
@@ -223,21 +220,17 @@ fun FiltrosSection(
             .background(MaterialTheme.colorScheme.surface)
             .padding(vertical = 8.dp)
     ) {
-        // Fila 1: Categorías
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 🔥 CHIP "TODOS"
             item {
                 FilterChip(
-                    selected = catSeleccionada == null, // Está seleccionado si no hay filtro activo
+                    selected = catSeleccionada == null,
                     onClick = { onCatSelected(null) },
                     label = { Text("Todos") }
                 )
             }
-
-            // Lista de Categorías
             items(categorias) { cat ->
                 FilterChip(
                     selected = cat == catSeleccionada,
@@ -248,11 +241,9 @@ fun FiltrosSection(
                     } else null
                 )
             }
-
-            // Botón "X" para limpiar todo (útil si hay colores seleccionados)
             if (catSeleccionada != null || colSeleccionado != null) {
                 item {
-                    VerticalDivider(modifier = Modifier.height(32.dp)) // Separador visual
+                    VerticalDivider(modifier = Modifier.height(32.dp))
                 }
                 item {
                     FilterChip(
@@ -270,7 +261,6 @@ fun FiltrosSection(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Fila 2: Colores (Solo si hay colores disponibles)
         if (colores.isNotEmpty()) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -285,7 +275,6 @@ fun FiltrosSection(
                 }
                 items(colores) { colorHex ->
                     val colorInt = try { Color(android.graphics.Color.parseColor(colorHex)) } catch (e: Exception) { Color.Gray }
-
                     FilterChip(
                         selected = colorHex == colSeleccionado,
                         onClick = { onColorSelected(colorHex) },
@@ -310,47 +299,28 @@ fun FiltrosSection(
     }
 }
 
-// ... Resto de componentes (EmptyStateMessage, PrendaCard) igual que antes ...
-
 @Composable
 fun EmptyStateMessage(mensaje: String, botonTexto: String, onClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = mensaje,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
-            )
+            Text(text = mensaje, style = MaterialTheme.typography.titleMedium, color = Color.Gray)
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onClick) {
-                Text(botonTexto)
-            }
+            Button(onClick = onClick) { Text(botonTexto) }
         }
     }
 }
 
 @Composable
-fun PrendaCard(
-    prenda: Prenda,
-    onDeleteClick: () -> Unit
-) {
-    val colorCompose = try {
-        Color(android.graphics.Color.parseColor(prenda.color))
-    } catch (_: Exception) {
-        Color.LightGray
-    }
+fun PrendaCard(prenda: Prenda, onDeleteClick: () -> Unit) {
+    val colorCompose = try { Color(android.graphics.Color.parseColor(prenda.color)) } catch (_: Exception) { Color.LightGray }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -358,60 +328,25 @@ fun PrendaCard(
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color.White)
             ) {
-                PrendaImagen(
-                    imagenPath = prenda.imagenUri,
-                    modifier = Modifier.fillMaxSize()
-                )
-
+                PrendaImagen(imagenPath = prenda.imagenUri, modifier = Modifier.fillMaxSize())
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
                 ) {
-                    Text(
-                        text = prenda.categoria,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Text(text = prenda.categoria, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = prenda.titulo,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
+                    Text(text = prenda.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .background(colorCompose, CircleShape)
-                            .padding(2.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                    )
-
+                    Box(modifier = Modifier.size(28.dp).background(colorCompose, CircleShape).padding(2.dp).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
                     Spacer(modifier = Modifier.width(8.dp))
-
                     IconButton(onClick = onDeleteClick) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Eliminar",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                        )
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
                     }
                 }
             }

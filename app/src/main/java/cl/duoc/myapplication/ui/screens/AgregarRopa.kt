@@ -1,10 +1,8 @@
 package cl.duoc.myapplication.ui.screens
 
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -42,10 +40,11 @@ import cl.duoc.myapplication.model.Prenda
 import cl.duoc.myapplication.ui.utils.ColorUtils
 import cl.duoc.myapplication.ui.utils.ImageUtils
 import cl.duoc.myapplication.viewmodel.RopaViewModel
+import cl.duoc.myapplication.ui.utils.Constants // ✅ Importante
 import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class) // Necesario para TopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel: RopaViewModel) {
     val context = LocalContext.current
@@ -57,7 +56,9 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
-    val categories = listOf("Accesorios", "Calcetines", "Chaqueta", "Jockey","Parka","Pantalones", "Polera", "Poleron", "Zapatilla")
+
+    // ✅ USAMOS LA LISTA CENTRALIZADA
+    val categories = Constants.CATEGORIAS
 
     // --- cámara / galería ---
     var cameraTempFile by remember { mutableStateOf<File?>(null) }
@@ -102,7 +103,6 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
 
     val scrollState = rememberScrollState()
 
-    // 🔥 CAMBIO PRINCIPAL: Usamos Scaffold para subir el título y la flecha a la barra de estado
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -114,30 +114,29 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White // O MaterialTheme.colorScheme.background
+                    containerColor = Color.White
                 )
             )
         }
     ) { paddingValues ->
 
-        // Contenido Principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Respeta el espacio del TopBar
+                .padding(paddingValues)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp), // Padding solo a los lados, arriba pegado al TopBar
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Tarjeta de Imagen (Reducida un poco para ahorrar espacio)
+            // Tarjeta de Imagen
             Card(
                 shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(),
-                modifier = Modifier.size(170.dp) // 🔥 Reducido de 200 a 170
+                modifier = Modifier.size(170.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (bitmap != null) {
@@ -200,9 +199,7 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
                             Icon(imageVector = Icons.Filled.ArrowDropDown, contentDescription = "Abrir")
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = true }
+                    modifier = Modifier.fillMaxWidth().clickable { expanded = true }
                 )
 
                 DropdownMenu(
@@ -221,7 +218,7 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- SECCIÓN COLOR (Simplificada visualmente) ---
+            // SECCIÓN COLOR
             Text(
                 text = "Selecciona color",
                 style = MaterialTheme.typography.titleMedium,
@@ -230,21 +227,11 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Muestra de color y Hex en una fila compacta
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(colorHex)))
-                        .border(1.dp, Color.Gray, CircleShape)
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(colorHex))).border(1.dp, Color.Gray, CircleShape)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-
-                // Input manual del Hex más compacto
                 OutlinedTextField(
                     value = colorHex,
                     onValueChange = { hex ->
@@ -264,17 +251,13 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // SV box (Cuadro grande de saturación)
+            // Selector Visual de Color
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp) // 🔥 Altura controlada
+                    .height(180.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(Color.White, Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))))
-                        )
-                    )
+                    .background(brush = Brush.horizontalGradient(colors = listOf(Color.White, Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))))))
                     .pointerInput(Unit) {
                         detectDragGestures { change, _ ->
                             val px = change.position.x
@@ -286,56 +269,25 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
                         }
                     }
             ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black))
-                        )
-                )
-                // Indicador circular simple
-                val indX = (sat * 100).toInt() // Solo para referencia visual simplificada
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.TopStart) // Posicionamiento relativo manual sería mejor con offset
-                        .offset(
-                            // Nota: Offset requiere valores dp fijos o Layout complejo.
-                            // Para simplificar el código UI y evitar crashes, dejamos el indicador fijo visualmente
-                            // o implementamos offset dp exacto si tienes Density.
-                            // (El código original tampoco tenía el offset aplicado visualmente en el Box)
-                        )
-                        .border(2.dp, Color.White, CircleShape)
-                )
+                Box(modifier = Modifier.matchParentSize().background(brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black))))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Slider Arcoiris
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(20.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(brush = Brush.horizontalGradient(
-                        listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)
-                    ))
+                modifier = Modifier.fillMaxWidth().height(20.dp).clip(RoundedCornerShape(10.dp)).background(brush = Brush.horizontalGradient(listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)))
             )
             Slider(
                 value = hue,
                 onValueChange = { hue = it },
                 valueRange = 0f..360f,
-                modifier = Modifier.fillMaxWidth().offset(y = (-10).dp), // Subir slider para superponer
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.Transparent,
-                    inactiveTrackColor = Color.Transparent
-                )
+                modifier = Modifier.fillMaxWidth().offset(y = (-10).dp),
+                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.Transparent, inactiveTrackColor = Color.Transparent)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Agregar Final
             Button(
                 onClick = {
                     if (imageUri != null && title.isNotBlank() && category.isNotBlank()) {
@@ -357,9 +309,7 @@ fun AgregarRopa(navController: androidx.navigation.NavController, ropaViewModel:
                         scope.launch { snackbarHostState.showSnackbar("Faltan datos") }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Guardar Prenda", fontSize = 16.sp)
